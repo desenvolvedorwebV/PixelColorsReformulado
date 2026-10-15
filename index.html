@@ -183,6 +183,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-completed-count" class="text-2xl font-black text-slate-100">0</span>
+                        <span class="text-xs text-slate-500 block">obras de arte</span>
                     </div>
                 </div>
                 <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
@@ -192,6 +193,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-total-pixels" class="text-2xl font-black text-slate-100">0</span>
+                        <span class="text-xs text-slate-500 block">blocos preenchidos</span>
                     </div>
                 </div>
                 <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
@@ -201,6 +203,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-total-time" class="text-xl font-extrabold text-slate-100">00:00:00</span>
+                        <span class="text-xs text-slate-500 block">horas acumuladas</span>
                     </div>
                 </div>
                 <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
@@ -210,6 +213,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-accuracy" class="text-2xl font-black text-slate-100">100%</span>
+                        <span class="text-xs text-slate-500 block">acertos por toque</span>
                     </div>
                 </div>
             </div>
@@ -309,7 +313,7 @@
                 <div class="flex justify-between items-center">
                     <div class="flex items-center space-x-3">
                         <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400">
-                            <i class="fa-solid fa-[#0284c7] fa-volume-high"></i>
+                            <i class="fa-solid fa-volume-high"></i>
                         </div>
                         <div>
                             <p class="text-sm font-semibold text-slate-200">Efeitos Sonoros</p>
@@ -1519,59 +1523,90 @@
             }
         }
 
-        /* Interactive Canvas Touch & Mouse Events */
+        /* Interactive Canvas Touch & Pointer Events (Suporte universal para mobile/touch e desktop) */
         let pointerDown = false;
         let lastTouchDist = 0;
+        let activePointers = new Map();
 
         container.addEventListener('pointerdown', (e) => {
+            activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             pointerDown = true;
             isDragging = false;
             dragStartX = e.clientX - panX;
             dragStartY = e.clientY - panY;
-        });
-
-        container.addEventListener('pointermove', (e) => {
-            if (!pointerDown) return;
-            isDragging = true;
-            panX = e.clientX - dragStartX;
-            panY = e.clientY - dragStartY;
-            renderCanvas();
-        });
-
-        container.addEventListener('pointerup', (e) => {
-            if (!pointerDown) return;
-            pointerDown = false;
-
-            // If it was a tap (not dragging), trigger paint click
-            if (!isDragging) {
-                handleCanvasClick(e.clientX, e.clientY);
+            if (e.pointerType === 'touch') {
+                e.preventDefault();
             }
         });
 
-        /* Pinch Zoom for Mobile */
+        container.addEventListener('pointermove', (e) => {
+            if (!activePointers.has(e.pointerId)) return;
+            const startPos = activePointers.get(e.pointerId);
+            
+            // Se o ponteiro se mover mais do que 8px, consideramos um gesto de arrastar/pan
+            if (Math.hypot(e.clientX - startPos.x, e.clientY - startPos.y) > 8) {
+                isDragging = true;
+            }
+
+            if (pointerDown && isDragging && activePointers.size === 1) {
+                panX = e.clientX - dragStartX;
+                panY = e.clientY - dragStartY;
+                renderCanvas();
+            }
+        });
+
+        const handlePointerUpOrCancel = (e) => {
+            const startPos = activePointers.get(e.pointerId);
+            activePointers.delete(e.pointerId);
+
+            if (activePointers.size === 0) {
+                pointerDown = false;
+            }
+
+            // Executa a pintura se for um toque/clique rápido sem ter arrastado a tela
+            if (!isDragging && startPos) {
+                handleCanvasClick(startPos.x, startPos.y);
+            }
+        };
+
+        container.addEventListener('pointerup', handlePointerUpOrCancel);
+        container.addEventListener('pointercancel', handlePointerUpOrCancel);
+
+        /* Pinch Zoom para dispositivos mobile */
         container.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
+                isDragging = true;
                 lastTouchDist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
             }
-        });
+        }, { passive: false });
 
         container.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
+                e.preventDefault();
+                isDragging = true;
                 const dist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
-                const factor = dist / lastTouchDist;
-                scale = Math.min(Math.max(8, scale * factor), 60);
+                if (lastTouchDist > 0) {
+                    const factor = dist / lastTouchDist;
+                    scale = Math.min(Math.max(8, scale * factor), 60);
+                    renderCanvas();
+                }
                 lastTouchDist = dist;
-                renderCanvas();
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                lastTouchDist = 0;
             }
         });
 
-        /* Wheel Zoom for Desktop */
+        /* Zoom de Scroll para Desktop */
         container.addEventListener('wheel', (e) => {
             e.preventDefault();
             const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
@@ -1581,22 +1616,22 @@
 
         function handleCanvasClick(clientX, clientY) {
             if (!currentArt || !selectedColorCode) return;
-        
+
             const rect = canvas.getBoundingClientRect();
-            const x = clientY ? clientX - rect.left : 0;
-            const y = clientY ? clientY - rect.top : 0;
-        
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
             // Converte posição da tela para posição na grade do desenho
             let col = Math.floor((x - panX) / scale);
             let row = Math.floor((y - panY) / scale);
-        
+
             const artProg = gameState.progress[currentArt.id];
-        
+
             // Se o clique direto não acertar a cor selecionada, busca em um raio próximo (para facilitar o toque mobile)
             if (col < 0 || col >= currentArt.width || row < 0 || row >= currentArt.height || currentArt.grid[row][col] !== selectedColorCode) {
                 let found = false;
                 const tolerance = scale < 18 ? 1 : 0; // Ativa tolerância de 1 pixel vizinho quando o zoom for pequeno
-        
+
                 for (let dr = -tolerance; dr <= tolerance && !found; dr++) {
                     for (let dc = -tolerance; dc <= tolerance && !found; dc++) {
                         const r = row + dr;
@@ -1611,23 +1646,23 @@
                     }
                 }
             }
-        
+
             if (col >= 0 && col < currentArt.width && row >= 0 && row < currentArt.height) {
                 const targetCode = currentArt.grid[row][col];
                 if (targetCode === "..") return;
-        
+
                 const key = `${col},${row}`;
                 gameState.stats.totalClicks++;
-        
+
                 if (targetCode === selectedColorCode) {
                     if (!artProg.paintedPixels[key]) {
                         artProg.paintedPixels[key] = selectedColorCode;
                         gameState.stats.correctClicks++;
                         gameState.stats.colorCounts[selectedColorCode] = (gameState.stats.colorCounts[selectedColorCode] || 0) + 1;
-        
+
                         playSound('pop');
                         triggerVibration();
-        
+
                         refreshPalette();
                         renderCanvas();
                         saveGameData();
