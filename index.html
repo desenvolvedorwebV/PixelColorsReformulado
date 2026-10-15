@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pixel Color Pro</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -34,6 +34,12 @@
         }
     </script>
     <style>
+        /* Safe area support for mobile devices */
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+        }
+
         /* Custom Mobile Fixes & Animations */
         body {
             user-select: none;
@@ -44,9 +50,20 @@
             color: #f8fafc;
         }
 
+        /* Responsive Layout Height Fix */
+        .app-viewport {
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Bottom Nav Safe Padding */
+        .bottom-nav-safe {
+            padding-bottom: max(0.5rem, var(--sab));
+        }
+
         /* Glassmorphism elements */
         .glass {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(30, 41, 59, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -118,13 +135,13 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col justify-between select-none">
+<body class="app-viewport w-screen overflow-hidden flex flex-col justify-between select-none">
 
     <!-- MAIN SPA SCREEN CONTAINER -->
-    <main id="app-container" class="flex-1 relative overflow-hidden">
+    <main id="app-container" class="flex-1 relative overflow-hidden w-full h-full">
         
         <!-- ==================== HOME SECTION ==================== -->
-        <section id="sec-home" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-5 no-scrollbar">
+        <section id="sec-home" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-5 no-scrollbar">
             <!-- Header -->
             <div class="flex justify-between items-center pt-2">
                 <div>
@@ -166,6 +183,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-completed-count" class="text-2xl font-black text-slate-100">0</span>
+                        <span class="text-xs text-slate-500 block">obras de arte</span>
                     </div>
                 </div>
                 <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
@@ -175,6 +193,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-total-pixels" class="text-2xl font-black text-slate-100">0</span>
+                        <span class="text-xs text-slate-500 block">blocos preenchidos</span>
                     </div>
                 </div>
                 <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
@@ -184,6 +203,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-total-time" class="text-xl font-extrabold text-slate-100">00:00:00</span>
+                        <span class="text-xs text-slate-500 block">horas acumuladas</span>
                     </div>
                 </div>
                 <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
@@ -193,6 +213,7 @@
                     </div>
                     <div class="mt-2">
                         <span id="stat-accuracy" class="text-2xl font-black text-slate-100">100%</span>
+                        <span class="text-xs text-slate-500 block">acertos por toque</span>
                     </div>
                 </div>
             </div>
@@ -230,7 +251,7 @@
         </section>
 
         <!-- ==================== CATEGORIES SECTION ==================== -->
-        <section id="sec-categories" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-4 no-scrollbar hidden">
+        <section id="sec-categories" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-4 no-scrollbar hidden">
             <h1 class="text-xl font-extrabold text-slate-100">Categorias de Desenho</h1>
             
             <!-- Category Cards Grid -->
@@ -240,7 +261,7 @@
         </section>
 
         <!-- ==================== CATEGORY DETAIL SUB-PAGE ==================== -->
-        <section id="sec-category-detail" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-4 no-scrollbar hidden bg-slate-900 z-10">
+        <section id="sec-category-detail" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-4 no-scrollbar hidden bg-slate-900 z-10">
             <div class="flex items-center space-x-3">
                 <button id="cat-detail-back-btn" class="w-9 h-9 glass rounded-full flex items-center justify-center text-slate-300 active:scale-95">
                     <i class="fa-solid fa-arrow-left"></i>
@@ -257,7 +278,7 @@
         </section>
 
         <!-- ==================== ALBUM SECTION ==================== -->
-        <section id="sec-album" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-4 no-scrollbar hidden">
+        <section id="sec-album" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-4 no-scrollbar hidden">
             <h1 class="text-xl font-extrabold text-slate-100">Seu Álbum de Arte</h1>
             
             <!-- Sub-tabs -->
@@ -282,7 +303,7 @@
         </section>
 
         <!-- ==================== SETTINGS SECTION ==================== -->
-        <section id="sec-settings" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-5 no-scrollbar hidden">
+        <section id="sec-settings" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-5 no-scrollbar hidden">
             <h1 class="text-xl font-extrabold text-slate-100">Configurações</h1>
 
             <!-- Preference Toggles -->
@@ -360,7 +381,7 @@
         </section>
 
         <!-- ==================== PIXEL CANVAS GAMEPLAY SCREEN ==================== -->
-        <section id="sec-canvas-game" class="spa-section absolute inset-0 flex flex-col bg-slate-950 z-20 hidden">
+        <section id="sec-canvas-game" class="spa-section fixed inset-0 flex flex-col bg-slate-950 z-40 hidden">
             <!-- Top Bar -->
             <header class="glass py-2.5 px-4 flex items-center justify-between border-b border-slate-800 z-10">
                 <button id="game-back-btn" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 active:scale-95">
@@ -403,7 +424,7 @@
             </div>
 
             <!-- Bottom Dynamic Active Palette Selector -->
-            <footer class="glass py-3 px-2 border-t border-slate-800 z-10 flex flex-col justify-center min-h-[90px]">
+            <footer class="glass py-3 px-2 border-t border-slate-800 z-10 flex flex-col justify-center min-h-[90px] bottom-nav-safe">
                 <div id="color-palette-container" class="flex items-center space-x-2 overflow-x-auto px-2 no-scrollbar py-1">
                     <!-- Dynamic Color Pills rendered here -->
                 </div>
@@ -412,8 +433,8 @@
 
     </main>
 
-    <!-- BOTTOM NAVIGATION BAR -->
-    <nav id="bottom-nav" class="glass border-t border-slate-800/80 py-2 px-3 flex justify-around items-center z-30">
+    <!-- FIXED BOTTOM NAVIGATION BAR -->
+    <nav id="bottom-nav" class="glass border-t border-slate-800/80 py-2 px-3 flex justify-around items-center z-30 shrink-0 w-full bottom-nav-safe">
         <button data-target="sec-home" class="nav-item active flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
             <i class="fa-solid fa-house text-lg"></i>
             <span class="text-[10px] font-medium">Início</span>
@@ -1321,8 +1342,6 @@
         let dragStartX = 0;
         let dragStartY = 0;
         let playTimerInterval = null;
-        let hintInterval = null;
-        let hintPulseState = false;
 
         const canvas = document.getElementById('paint-canvas');
         const ctx = canvas.getContext('2d');
@@ -1717,6 +1736,14 @@
         function showSection(sectionId) {
             document.querySelectorAll('.spa-section').forEach(sec => sec.classList.add('hidden'));
             document.getElementById(sectionId).classList.remove('hidden');
+
+            // Controls Bottom Nav Visibility based on view
+            const bottomNav = document.getElementById('bottom-nav');
+            if (sectionId === 'sec-canvas-game') {
+                bottomNav.classList.add('hidden');
+            } else {
+                bottomNav.classList.remove('hidden');
+            }
 
             // Bottom Nav tab active state
             document.querySelectorAll('.nav-item').forEach(item => {
