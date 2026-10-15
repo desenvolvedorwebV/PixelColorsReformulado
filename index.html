@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel Color Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Mobile Fixes & Animations */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Glassmorphism elements */
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Hide scrollbars for slick look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Color Pill transition when disappearing */
+        .color-pill {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .color-pill.removing {
+            transform: scale(0) opacity(0);
+            width: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Active Navigation Tab Highlighting */
+        .nav-item.active {
+            color: #38bdf8;
+        }
+        .nav-item.active i {
+            transform: translateY(-2px);
+            filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.5));
+        }
+
+        /* Canvas Touch Layer */
+        #canvas-container {
+            touch-action: none;
+            cursor: grab;
+            background-image: 
+                linear-gradient(45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+                linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        /* Custom Scrollbars for modal/views */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between select-none">
+
+    <!-- MAIN SPA SCREEN CONTAINER -->
+    <main id="app-container" class="flex-1 relative overflow-hidden">
+        
+        <!-- ==================== HOME SECTION ==================== -->
+        <section id="sec-home" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-5 no-scrollbar">
+            <!-- Header -->
+            <div class="flex justify-between items-center pt-2">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">Pixel Color Pro</h1>
+                    <p class="text-xs text-slate-400">Transforme pixels em arte</p>
+                </div>
+                <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/50">
+                    <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+                    <span id="home-user-lvl" class="text-xs font-bold text-slate-200">Nível 1</span>
+                </div>
+            </div>
+
+            <!-- Resume Painting Hero Card (If available) -->
+            <div id="home-resume-card" class="hidden glass rounded-2xl p-4 relative overflow-hidden border border-sky-500/30">
+                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl"></div>
+                <div class="flex items-center space-x-4">
+                    <canvas id="home-resume-canvas" class="w-20 h-20 rounded-xl bg-slate-900 border border-slate-700 object-contain shadow-md"></canvas>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-sky-400 bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/50">Continuar Jogando</span>
+                        <h3 id="home-resume-title" class="font-bold text-base text-slate-100 truncate mt-1">Carregando...</h3>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+                            <div id="home-resume-bar" class="bg-gradient-to-r from-sky-500 to-indigo-500 h-full w-0 transition-all duration-300"></div>
+                        </div>
+                        <p id="home-resume-percent" class="text-xs text-slate-400 mt-1">0% concluído</p>
+                    </div>
+                </div>
+                <button id="home-resume-btn" class="w-full mt-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold py-2.5 rounded-xl shadow-lg shadow-sky-500/20 active:scale-[0.98] transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-play text-sm"></i>
+                    <span>Retomar Pintura</span>
+                </button>
+            </div>
+
+            <!-- Dashboard Stats Grid -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Concluídos</span>
+                        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-completed-count" class="text-2xl font-black text-slate-100">0</span>
+                        <span class="text-xs text-slate-500 block">obras de arte</span>
+                    </div>
+                </div>
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Pixels Pintados</span>
+                        <i class="fa-solid fa-cubes text-sky-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-total-pixels" class="text-2xl font-black text-slate-100">0</span>
+                        <span class="text-xs text-slate-500 block">blocos preenchidos</span>
+                    </div>
+                </div>
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Tempo de Jogo</span>
+                        <i class="fa-solid fa-clock text-indigo-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-total-time" class="text-xl font-extrabold text-slate-100">00:00:00</span>
+                        <span class="text-xs text-slate-500 block">horas acumuladas</span>
+                    </div>
+                </div>
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Precisão</span>
+                        <i class="fa-solid fa-bullseye text-rose-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-accuracy" class="text-2xl font-black text-slate-100">100%</span>
+                        <span class="text-xs text-slate-500 block">acertos por toque</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deep Analytics Cards -->
+            <div class="glass rounded-2xl p-4 space-y-3">
+                <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-sky-400"></i> Estatísticas Detalhadas
+                </h2>
+                <div class="divide-y divide-slate-800 text-xs">
+                    <div class="py-2 flex justify-between items-center">
+                        <span class="text-slate-400">Categoria Favorita</span>
+                        <span id="stat-fav-cat" class="font-bold text-slate-200">Nenhuma</span>
+                    </div>
+                    <div class="py-2 flex justify-between items-center">
+                        <span class="text-slate-400">Cor mais Utilizada</span>
+                        <div id="stat-fav-color-box" class="flex items-center space-x-2">
+                            <span id="stat-fav-color-code" class="font-bold text-slate-200">N/A</span>
+                            <div id="stat-fav-color-dot" class="w-4 h-4 rounded-full border border-slate-600 hidden"></div>
+                        </div>
+                    </div>
+                    <div class="py-2 flex justify-between items-center">
+                        <span class="text-slate-400">Média de Tempo / Desenho</span>
+                        <span id="stat-avg-time" class="font-bold text-slate-200">0m 0s</span>
+                    </div>
+                    <div class="py-2 flex justify-between items-center">
+                        <span class="text-slate-400">Progresso do Jogo</span>
+                        <span id="stat-game-progress" class="font-bold text-sky-400">0%</span>
+                    </div>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div id="stat-game-progress-bar" class="bg-gradient-to-r from-emerald-500 to-sky-500 h-full w-0 transition-all duration-500"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== CATEGORIES SECTION ==================== -->
+        <section id="sec-categories" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-4 no-scrollbar hidden">
+            <h1 class="text-xl font-extrabold text-slate-100">Categorias de Desenho</h1>
+            
+            <!-- Category Cards Grid -->
+            <div id="categories-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Dynamically Populated -->
+            </div>
+        </section>
+
+        <!-- ==================== CATEGORY DETAIL SUB-PAGE ==================== -->
+        <section id="sec-category-detail" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-4 no-scrollbar hidden bg-slate-900 z-10">
+            <div class="flex items-center space-x-3">
+                <button id="cat-detail-back-btn" class="w-9 h-9 glass rounded-full flex items-center justify-center text-slate-300 active:scale-95">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 id="cat-detail-title" class="text-lg font-bold text-slate-100">Categoria</h1>
+                    <p id="cat-detail-subtitle" class="text-xs text-slate-400">0 de 0 pintados</p>
+                </div>
+            </div>
+            
+            <div id="cat-detail-drawings-grid" class="grid grid-cols-2 gap-3">
+                <!-- Dynamically populated artwork cards -->
+            </div>
+        </section>
+
+        <!-- ==================== ALBUM SECTION ==================== -->
+        <section id="sec-album" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-4 no-scrollbar hidden">
+            <h1 class="text-xl font-extrabold text-slate-100">Seu Álbum de Arte</h1>
+            
+            <!-- Sub-tabs -->
+            <div class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
+                <button id="album-tab-completed" class="flex-1 py-2 rounded-lg text-xs font-bold transition text-sky-400 bg-slate-700/80 shadow">
+                    Concluídos (<span id="album-completed-count">0</span>)
+                </button>
+                <button id="album-tab-progress" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition">
+                    Em Andamento (<span id="album-progress-count">0</span>)
+                </button>
+            </div>
+
+            <!-- Tab Content 1: Completed -->
+            <div id="album-content-completed" class="grid grid-cols-2 gap-3">
+                <!-- Completed Artworks -->
+            </div>
+
+            <!-- Tab Content 2: In Progress -->
+            <div id="album-content-progress" class="grid grid-cols-1 gap-3 hidden">
+                <!-- In Progress Artworks -->
+            </div>
+        </section>
+
+        <!-- ==================== SETTINGS SECTION ==================== -->
+        <section id="sec-settings" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-24 space-y-5 no-scrollbar hidden">
+            <h1 class="text-xl font-extrabold text-slate-100">Configurações</h1>
+
+            <!-- Preference Toggles -->
+            <div class="glass rounded-2xl p-4 space-y-4">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Preferências de Jogo</h2>
+                
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400">
+                            <i class="fa-solid fa-[#0284c7] fa-volume-high"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-200">Efeitos Sonoros</p>
+                            <p class="text-[11px] text-slate-400">Sons de toque e finalização</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-sound" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                    </label>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-200">Vibração (Haptic)</p>
+                            <p class="text-[11px] text-slate-400">Feedback tátil ao selecionar pixel</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-vibration" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Save Data & Backup Operations -->
+            <div class="glass rounded-2xl p-4 space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dados & Progresso</h2>
+                
+                <button id="btn-export-save" class="w-full bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700/60 font-medium py-3 px-4 rounded-xl flex items-center justify-between active:scale-[0.99] transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-download text-sky-400"></i>
+                        <span class="text-sm">Exportar Progresso (JSON)</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                </button>
+
+                <button id="btn-import-save" class="w-full bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700/60 font-medium py-3 px-4 rounded-xl flex items-center justify-between active:scale-[0.99] transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-upload text-indigo-400"></i>
+                        <span class="text-sm">Importar Progresso (.json)</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                </button>
+                <input type="file" id="import-file-input" accept=".json" class="hidden">
+
+                <button id="btn-reset-save" class="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-medium py-3 px-4 rounded-xl flex items-center justify-between active:scale-[0.99] transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-trash-can text-rose-400"></i>
+                        <span class="text-sm">Reiniciar Todo o Progresso</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-rose-500/50"></i>
+                </button>
+            </div>
+
+            <!-- Credits / App Info -->
+            <div class="text-center pt-4">
+                <p class="text-xs text-slate-500">Pixel Color Game v1.0.0</p>
+                <p class="text-[10px] text-slate-600">Paleta de Cores Nativa & Engine HTML5 Canvas</p>
+            </div>
+        </section>
+
+        <!-- ==================== PIXEL CANVAS GAMEPLAY SCREEN ==================== -->
+        <section id="sec-canvas-game" class="spa-section absolute inset-0 flex flex-col bg-slate-950 z-20 hidden">
+            <!-- Top Bar -->
+            <header class="glass py-2.5 px-4 flex items-center justify-between border-b border-slate-800 z-10">
+                <button id="game-back-btn" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 active:scale-95">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+
+                <div class="text-center flex-1 mx-2 min-w-0">
+                    <h2 id="game-drawing-title" class="text-sm font-bold text-slate-100 truncate">Desenho</h2>
+                    <div class="flex items-center justify-center space-x-2 text-[11px] text-slate-400">
+                        <span id="game-progress-text">0%</span>
+                        <span>•</span>
+                        <span id="game-timer">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button id="game-hint-btn" class="px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center space-x-1 active:scale-95">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <span>Dica</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Interactive Touch Canvas Container -->
+            <div id="canvas-container" class="flex-1 relative overflow-hidden flex items-center justify-center">
+                <canvas id="paint-canvas" class="shadow-2xl"></canvas>
+                
+                <!-- On-Screen Zoom Controls Overlay -->
+                <div class="absolute right-3 bottom-3 flex flex-col space-y-2">
+                    <button id="btn-zoom-in" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-200 active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <button id="btn-zoom-out" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-200 active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <button id="btn-zoom-reset" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-200 active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Dynamic Active Palette Selector -->
+            <footer class="glass py-3 px-2 border-t border-slate-800 z-10 flex flex-col justify-center min-h-[90px]">
+                <div id="color-palette-container" class="flex items-center space-x-2 overflow-x-auto px-2 no-scrollbar py-1">
+                    <!-- Dynamic Color Pills rendered here -->
+                </div>
+            </footer>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav id="bottom-nav" class="glass border-t border-slate-800/80 py-2 px-3 flex justify-around items-center z-30">
+        <button data-target="sec-home" class="nav-item active flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-house text-lg"></i>
+            <span class="text-[10px] font-medium">Início</span>
+        </button>
+        <button data-target="sec-categories" class="nav-item flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-layer-group text-lg"></i>
+            <span class="text-[10px] font-medium">Categorias</span>
+        </button>
+        <button data-target="sec-album" class="nav-item flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-images text-lg"></i>
+            <span class="text-[10px] font-medium">Álbum</span>
+        </button>
+        <button data-target="sec-settings" class="nav-item flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-gear text-lg"></i>
+            <span class="text-[10px] font-medium">Ajustes</span>
+        </button>
+    </nav>
+
+    <!-- RESET CONFIRMATION MODAL -->
+    <div id="reset-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass border border-slate-700/80 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-100">Reiniciar Progresso?</h3>
+                <p class="text-xs text-slate-400">Esta ação apagará permanentemente todas as suas artes pintadas, tempos e conquistas.</p>
+            </div>
+            <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Digite <strong class="text-rose-400">RESET</strong> para confirmar:</label>
+                <input type="text" id="reset-input-confirm" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-center font-mono font-bold text-slate-100 uppercase focus:outline-none focus:border-rose-500" placeholder="RESET">
+            </div>
+            <div class="flex space-x-2">
+                <button id="reset-cancel-btn" class="flex-1 bg-slate-800 text-slate-300 font-semibold py-2.5 rounded-xl text-sm active:scale-95">Cancelar</button>
+                <button id="reset-confirm-btn" disabled class="flex-1 bg-rose-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm active:scale-95 transition">Resetar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONGRATULATIONS / COMPLETE ART MODAL -->
+    <div id="complete-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass border border-sky-500/30 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative overflow-hidden">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-950 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-lg shadow-amber-500/20 rotate-3">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-black text-slate-100">Obra Concluída!</h2>
+                <p id="complete-art-title" class="text-sm font-semibold text-sky-400 mt-1">Nome da Arte</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-800 text-xs">
+                <div>
+                    <span class="text-slate-500 block">Tempo Gasto</span>
+                    <strong id="complete-art-time" class="text-slate-200 text-sm">00:00</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block">Precisão</span>
+                    <strong id="complete-art-acc" class="text-slate-200 text-sm">100%</strong>
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+                <button id="complete-album-btn" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-sky-500/20 active:scale-95 transition">
+                    Ver no Álbum
+                </button>
+                <button id="complete-home-btn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl text-xs active:scale-95 transition">
+                    Voltar para o Início
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION CORE -->
+    <script>
+        /* ==========================================================================
+           1. PALETTE COLLORS
+           ========================================================================== */
+        const cores = {
+            "A1":"#FFF2CA", "A2":"#FFF9D3", "A3":"#FFEB8C", "A4":"#FFD23C", "A5":"#F9CA34", "A6":"#FFAF4B", "A7":"#FF7828","A8":"#DDB42D", "A9":"#F8986D", "A10": "#FF863E", "A11": "#FFBE6E", "A12":"#FFB695", "A13":"#FFAF41", "A14":"#FC5D37", "A15":"#F4F412", "A16":"#FFFD9C", "A17":"#FFDA6F", "A18": "#FFB97C", "A19":"#FD736F", "A20":"#FECE60", "A21":"#FCCD7F", "A22":"#FFE87E", "A23":"#F4D2B1", "A24":"#FFFFC8", "A25":"#FFD88A", "A26": "#FAB53B",
+            "B1":"#E3EC2A", "B2":"#77DC45", "B3":"#A6F5A1", "B4":"#71E341","B5":"#46CA52", "B6":"#7EDCBC", "B7":"#068C79", "B8":"#01803D", "B9":"#063C1E", "B10":"#A7E7D8", "B11":"#6E7B36", "B12":"#2B7057", "B13":"#D0EE81", "B14":"#B8E144", "B15":"#3B6041", "B16":"#BFE798", "B17":"#9CB032",  "B18":"#E6E645", "B19":"#2EAE8C", "B20":"#DEF7DA", "B21":"#047C6B", "B22":"#16554C", "B23":"#3A4925", "B24":"#EFFFC1", "B25":"#5F886F", "B26":"#A48C48", "B27":"#D3DDA3", "B28":"#AAEDB7", "B29":"#C7DD4F", "B30":"#EFF8D0", "B31": "#CFEEB6", "B32":"#99A457",
+            "C1":"#E9FCF0", "C2":"#B8EAE3", "C3":"#C5E8F9", "C4":"#83CFF0", "C5":"#12A6DC", "C6":"#59A8EC", "C7":"#377AC3", "C8":"#0066CC", "C9":"#234AC0", "C10":"#3BBFD6", "C11":"#2EC0BE", "C12":"#1C3244", "C13":"#D8EFFF", "C14":"#E5F7F7", "C15":"#35C0B3", "C16":"#2F5989", "C17":"#45C9D6", "C18":"#154047", "C19":"#208D9B", "C20":"#2289B9", "C21":"#E0F0FB", "C22":"#6FBBBA", "C23":"#DAF0F1", "C24":"#81C3F5", "C25":"#ABF2D0", "C26":"#61B0CA", "C27":"#F6F5FB", "C28":"#D1DEF7", "C29":"#364598",
+            "D1":"#A9BBF6", "D2":"#8C9CD0", "D3":"#133EA2", "D4":"#213F7F", "D5":"#C554B8", "D6":"#BF95F6", "D7":"#7C50B1", "D8":"#E9E0FF", "D9":"#D8C5EE", "D10":"#2A1350", "D11":"#B7C7FE", "D12":"#E095D5", "D13":"#D63DB8", "D14":"#892A98", "D15":"#362392", "D16":"#E6E6FB", "D17":"#C7D5F6", "D18":"#9F63C4", "D19":"#EDD1F5", "D20":"#9A36AF", "D21":"#9E0899", "D22":"#3F4090", "D23":"#EADBF8", "D24":"#8888DD", "D25":"#5453C1", "D26":"#E4C6F2",
+            "E1":"#FED7D2", "E2":"#FFD9EB", "E3":"#FC9BCB", "E4":"#F077AC", "E5":"#ED548B", "E6":"#FF3377", "E7":"#AD156D", "E8":"#FFDEDE", "E9":"#FF8BDA", "E10":"#B73B74", "E11":"#FCEBEC", "E12":"#FFADCC", "E13":"#A91185", "E14":"#FDD2C1", "E15":"#FAD3D6", "E16":"#FFF2EA", "E17":"#FBE8F7", "E18":"#FCCFED", "E19":"#FFD2F0", "E20":"#F5E2EB", "E21":"#D4A7AC", "E22":"#C686B1", "E23":"#AA8AA9", "E24":"#FFEBF8",
+            "F1":"#FF9685", "F2":"#FF5F58", "F3":"#FF4E53", "F4":"#E02A25", "F5":"#CD3338", "F6":"#982F26", "F7":"#861736", "F8":"#B1082D", "F9":"#E66F83", "F10":"#984E30", "F11":"#642E28", "F12":"#FF435E", "F13":"#CD4931", "F14":"#FFAAAA", "F15":"#C22939", "F16":"#FEE2DC", "F17":"#FFB5A5", "F18":"#E6804D", "F19":"#C2555F", "F20":"#DA958B", "F21":"#FFB8C0", "F22":"#FDCBC9", "F23":"#EE7E6F", "F24":"#FFB3BD", "F25":"#DF5757",
+            "G1":"#FFE3C8", "G2":"#FFD4B6", "G3":"#F8D2BE", "G4":"#E3C2A2", "G5":"#F9AE59", "G6":"#FD9B40", "G7":"#8D583B", "G8":"#492B1E", "G9":"#ECBD80", "G10":"#CF8C30", "G11":"#E7D297", "G12":"#DDBA84", "G13":"#DE8553", "G14":"#86644F", "G15":"#F5F5DC", "G16":"#ECDFC9", "G17":"#6B5652", "G18":"#F6E4D4", "G19":"#EBA457", "G20":"#AE633F", "G21":"#CD8F6D",
+            "H1":"#F6F4F5", "H2":"#FFFFFF", "H3":"#BCBCBC", "H4":"#878787", "H5":"#635F67", "H6":"#3B373F", "H7":"#000000", "H8":"#F8E7E7", "H9":"#E8E4D8", "H10":"#EBE8F1", "H11":"#CECCCC", "H12":"#FFFCF4", "H13":"#ECE0C7", "H14":"#E3EBEE", "H15":"#A5B7BF", "H16":"#2A2418", "H17":"#FAFAFF", "H18":"#FEFEF4", "H19":"#FFFAED", "H20":"#9AA9B2", "H21":"#FAFAF1", "H22":"#EEEEF1", "H23":"#CED1BA",
+            "M1":"#BCC5BA", "M2":"#92B298", "M3":"#748A94", "M4":"#F2E6DB", "M5":"#DFD6B8", "M6":"#D1C298", "M7":"#BFABA6", "M8":"#B3969A", "M9":"#B7967D", "M10":"#C5AFCB", "M11":"#9D809F", "M12":"#6F585C", "M13":"#E4AA9B", "M14":"#CF7064", "M15":"#888888"
+        };
+
+        /* ==========================================================================
+           2. ARTWORK DATA REPOSITORY
+           ========================================================================== */
+        const ARTWORKS = [
+            {
+                id: "apple",
+                title: "Maçã Suculenta",
+                category: "Alimentos",
+                width: 12,
+                height: 12,
+                grid: [
+                    ["..","..","..","..","..","B8","B8","..","..","..","..",".."],
+                    ["..","..","..","..","B8","G7","G7","..","..","..","..",".."],
+                    ["..","..","F4","F4","F4","G7","F4","F4","F4","..","..",".."],
+                    ["..","F4","F2","F2","F4","F4","F4","F4","F4","F4","..",".."],
+                    ["F4","F2","H2","H2","F2","F4","F4","F4","F4","F4","F4",".."],
+                    ["F4","F2","H2","F2","F4","F4","F4","F4","F4","F4","F4",".."],
+                    ["F4","F4","F2","F4","F4","F4","F4","F4","F4","F4","F4",".."],
+                    ["F4","F4","F4","F4","F4","F4","F4","F4","F4","F4","F4",".."],
+                    ["..","F4","F4","F4","F4","F4","F4","F4","F4","F4","..",".."],
+                    ["..","F4","F4","F4","F4","F4","F4","F4","F4","F4","..",".."],
+                    ["..","..","F5","F5","F5","..","..","F5","F5","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "cat",
+                title: "Gatinho Fofo",
+                category: "Animais",
+                width: 14,
+                height: 14,
+                grid: [
+                    ["G7","G7","..","..","..","..","..","..","..","..","G7","G7","..",".."],
+                    ["G7","E3","G7","..","..","..","..","..","..","G7","E3","G7","..",".."],
+                    ["G7","E3","E3","G7","H1","H1","H1","H1","G7","E3","E3","G7","..",".."],
+                    ["G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","..",".."],
+                    ["G7","G7","H2","H7","G7","G7","G7","G7","H2","H7","G7","G7","..",".."],
+                    ["G7","G7","H7","H7","G7","G7","G7","G7","H7","H7","G7","G7","..",".."],
+                    ["G7","G7","G7","G7","G7","E4","E4","G7","G7","G7","G7","G7","..",".."],
+                    ["G7","G7","G7","G7","H7","H2","H2","H7","G7","G7","G7","G7","..",".."],
+                    ["..","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","..","G7",".."],
+                    ["..","..","G7","G7","G7","G7","G7","G7","G7","G7","..","G7","G7",".."],
+                    ["..","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7",".."],
+                    ["..","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","G7","..",".."],
+                    ["..","G7","H2","H2","G7","..","..","G7","H2","H2","G7","..","..",".."],
+                    ["..","G7","G7","G7","G7","..","..","G7","G7","G7","G7","..","..",".."]
+                ]
+            },
+            {
+                id: "duck",
+                title: "Patinho Amarelo",
+                category: "Animais",
+                width: 12,
+                height: 12,
+                grid: [
+                    ["..","..","..","A4","A4","A4","A4","..","..","..","..",".."],
+                    ["..","..","A4","A4","A4","A4","A4","A4","..","..","..",".."],
+                    ["..","..","A4","H7","A4","A4","A4","A4","..","..","..",".."],
+                    ["..","..","A4","A4","A4","A4","A10","A10","A10","..","..",".."],
+                    ["..","..","..","A4","A4","A4","A10","A10","..","..","..",".."],
+                    ["..","A4","A4","A4","A4","A4","A4","A4","..","..","..",".."],
+                    ["A4","A4","A4","A4","A4","A4","A4","A4","A4","..","..",".."],
+                    ["A4","A4","A4","A4","A4","A4","A4","A4","A4","..","..",".."],
+                    ["..","A4","A4","A4","A4","A4","A4","A4","..","..","..",".."],
+                    ["..","..","A4","A4","A4","A4","A4","..","..","..","..",".."],
+                    ["..","..","..","A10","..","A10","..","..","..","..","..",".."],
+                    ["..","..","A10","A10","..","A10","A10","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "cactus",
+                title: "Cacto Fofo",
+                category: "Natureza",
+                width: 12,
+                height: 14,
+                grid: [
+                    ["..","..","..","..","B5","B5","B5","..","..","..","..",".."],
+                    ["..","..","..","..","B5","B5","B5","..","..","..","..",".."],
+                    ["..","B5","B5","..","B5","B5","B5","..","B5","B5","..",".."],
+                    ["..","B5","B5","..","B5","B5","B5","..","B5","B5","..",".."],
+                    ["..","B5","B5","B5","B5","B5","B5","B5","B5","B5","..",".."],
+                    ["..","..","B5","B5","B5","B5","B5","B5","B5","..","..",".."],
+                    ["..","..","..","..","B5","B5","B5","..","..","..","..",".."],
+                    ["..","..","..","..","B5","B5","B5","..","..","..","..",".."],
+                    ["..","..","..","..","B5","B5","B5","..","..","..","..",".."],
+                    ["..","..","G10","G10","G10","G10","G10","G10","G10","..","..",".."],
+                    ["..","..","G10","G4","G4","G4","G4","G4","G10","..","..",".."],
+                    ["..","..","..","G4","G4","G4","G4","G4","..","..","..",".."],
+                    ["..","..","..","G4","G4","G4","G4","G4","..","..","..",".."],
+                    ["..","..","..","G10","G10","G10","G10","G10","..","..","..",".."]
+                ]
+            },
+            {
+                id: "donut",
+                title: "Donut Colorido",
+                category: "Alimentos",
+                width: 13,
+                height: 13,
+                grid: [
+                    ["..","..","..","E4","E4","E4","E4","E4","..","..","..","..",".."],
+                    ["..","..","E4","E4","E4","C5","E4","E4","E4","..","..","..",".."],
+                    ["..","E4","E4","A4","E4","E4","E4","E4","F2","E4","..","..",".."],
+                    ["E4","E4","E4","E4","E4","E4","E4","E4","E4","E4","E4","..",".."],
+                    ["E4","E4","B4","E4","G4","G4","G4","E4","E4","E4","E4","..",".."],
+                    ["E4","E4","E4","G4","G4","H2","G4","G4","E4","C5","E4","..",".."],
+                    ["E4","E4","E4","G4","H2","H2","G4","G4","E4","E4","E4","..",".."],
+                    ["E4","F2","E4","G4","G4","G4","G4","E4","E4","E4","E4","..",".."],
+                    ["..","E4","E4","E4","E4","E4","E4","E4","A4","E4","..","..",".."],
+                    ["..","G4","G4","E4","E4","E4","E4","E4","G4","G4","..","..",".."],
+                    ["..","..","G4","G4","G4","G4","G4","G4","G4","..","..","..",".."],
+                    ["..","..","..","G4","G4","G4","G4","G4","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "mushroom",
+                title: "Cogumelo Mágico",
+                category: "Natureza",
+                width: 12,
+                height: 12,
+                grid: [
+                    ["..","..","..","F3","F3","F3","F3","F3","..","..","..",".."],
+                    ["..","..","F3","F3","F3","F3","H2","H2","F3","..","..",".."],
+                    ["..","F3","F3","H2","H2","F3","H2","H2","F3","F3","..",".."],
+                    ["..","F3","F3","H2","H2","F3","F3","F3","F3","F3","..",".."],
+                    ["F3","F3","F3","F3","F3","F3","F3","F3","F3","F3","F3",".."],
+                    ["F3","H2","H2","F3","F3","F3","H2","H2","F3","F3","F3",".."],
+                    ["F3","H2","H2","F3","F3","F3","H2","H2","F3","F3","F3",".."],
+                    ["..","F3","F3","F3","F3","F3","F3","F3","F3","F3","..",".."],
+                    ["..","..","G1","G1","G1","G1","G1","G1","G1","..","..",".."],
+                    ["..","..","..","G1","G1","G1","G1","G1","..","..","..",".."],
+                    ["..","..","..","G1","G1","G1","G1","G1","..","..","..",".."],
+                    ["..","..","..","G1","G1","G1","G1","G1","..","..","..",".."]
+                ]
+            },
+            {
+                id: "heart",
+                title: "Coração Pop",
+                category: "Geométrico",
+                width: 11,
+                height: 11,
+                grid: [
+                    ["..","E6","E6","..","..","..","..","E6","E6","..",".."],
+                    ["E6","F2","F2","E6","..","..","E6","F2","F2","E6",".."],
+                    ["E6","F2","H2","F2","E6","E6","F2","F2","F2","E6",".."],
+                    ["E6","F2","F2","F2","F2","F2","F2","F2","F2","E6",".."],
+                    ["E6","F2","F2","F2","F2","F2","F2","F2","F2","E6",".."],
+                    ["..","E6","F2","F2","F2","F2","F2","F2","E6","..",".."],
+                    ["..","..","E6","F2","F2","F2","F2","E6","..","..",".."],
+                    ["..","..","..","E6","F2","F2","E6","..","..","..",".."],
+                    ["..","..","..","..","E6","E6","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "ghost",
+                title: "Fantasma Retrô",
+                category: "Geométrico",
+                width: 12,
+                height: 12,
+                grid: [
+                    ["..","..","..","C4","C4","C4","C4","C4","..","..","..",".."],
+                    ["..","..","C4","C4","C4","C4","C4","C4","C4","..","..",".."],
+                    ["..","C4","C4","C4","C4","C4","C4","C4","C4","C4","..",".."],
+                    ["..","C4","H2","H2","C4","C4","H2","H2","C4","C4","..",".."],
+                    ["..","C4","C8","C8","C4","C4","C8","C8","C4","C4","..",".."],
+                    ["..","C4","C4","C4","C4","C4","C4","C4","C4","C4","..",".."],
+                    ["..","C4","C4","C4","C4","C4","C4","C4","C4","C4","..",".."],
+                    ["..","C4","C4","C4","C4","C4","C4","C4","C4","C4","..",".."],
+                    ["..","C4","C4","C4","C4","C4","C4","C4","C4","C4","..",".."],
+                    ["..","C4","C4","C4","C4","C4","C4","C4","C4","C4","..",".."],
+                    ["..","C4","..","C4","C4","..","..","C4","C4","..","C4",".."],
+                    ["..","..","..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "pizza",
+                title: "Fatia de Pizza",
+                category: "Alimentos",
+                width: 10,
+                height: 10,
+                grid: [
+                    ["..","G10","G10","G10","G10","G10","G10","G10","G10",".."],
+                    ["G10","A4","A4","A4","A4","A4","A4","A4","A4","G10"],
+                    ["..","A4","F4","F4","A4","A4","F4","F4","A4",".."],
+                    ["..","A4","F4","F4","A4","A4","F4","F4","A4",".."],
+                    ["..","..","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["..","..","A4","F4","F4","A4","A4","..","..",".."],
+                    ["..","..","..","A4","A4","A4","..","..","..",".."],
+                    ["..","..","..","A4","A4","..","..","..","..",".."],
+                    ["..","..","..","..","A4","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "icecream",
+                title: "Sorvete de Casquinha",
+                category: "Alimentos",
+                width: 10,
+                height: 12,
+                grid: [
+                    ["..","..","..","E12","E12","E12","..","..","..",".."],
+                    ["..","..","E12","E12","E12","E12","E12","..","..",".."],
+                    ["..","E12","E12","H2","E12","E12","E12","E12","..",".."],
+                    ["..","E12","E12","E12","E12","E12","E12","E12","..",".."],
+                    ["C3","C3","E12","E12","E12","E12","E12","C3","C3",".."],
+                    ["..","G5","G5","G5","G5","G5","G5","G5","..",".."],
+                    ["..","G5","G10","G5","G5","G5","G10","G5","..",".."],
+                    ["..","..","G5","G10","G5","G10","G5","..","..",".."],
+                    ["..","..","G5","G5","G10","G5","G5","..","..",".."],
+                    ["..","..","..","G5","G10","G5","..","..","..",".."],
+                    ["..","..","..","..","G5","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "penguin",
+                title: "Pinguim Divertido",
+                category: "Animais",
+                width: 10,
+                height: 11,
+                grid: [
+                    ["..","..","H6","H6","H6","H6","H6","H6","..",".."],
+                    ["..","H6","H6","H6","H6","H6","H6","H6","H6",".."],
+                    ["..","H6","H2","H6","H6","H6","H2","H6","H6",".."],
+                    ["..","H6","H7","H6","A6","A6","H7","H6","H6",".."],
+                    ["..","H6","H6","A6","A6","A6","A6","H6","H6",".."],
+                    ["H6","H6","H2","H2","H2","H2","H2","H2","H6","H6"],
+                    ["H6","H6","H2","H2","H2","H2","H2","H2","H6","H6"],
+                    ["H6","H6","H2","H2","H2","H2","H2","H2","H6","H6"],
+                    ["..","H6","H2","H2","H2","H2","H2","H2","H6",".."],
+                    ["..","A6","A6","A6","..","..","A6","A6","A6",".."],
+                    ["..","A6","A6","..","..","..","..","A6","A6",".."]
+                ]
+            },
+            {
+                id: "panda",
+                title: "Panda Fofo",
+                category: "Animais",
+                width: 11,
+                height: 11,
+                grid: [
+                    ["H7","H7","..","..","..","..","..","..","..","H7","H7"],
+                    ["H7","H7","..","H2","H2","H2","H2","H2","..","H7","H7"],
+                    ["..","H2","H2","H2","H2","H2","H2","H2","H2","H2",".."],
+                    ["..","H2","H7","H7","H2","H2","H2","H7","H7","H2",".."],
+                    ["..","H2","H7","H7","H2","H7","H2","H7","H7","H2",".."],
+                    ["..","H2","H2","H2","H7","H7","H7","H2","H2","H2",".."],
+                    ["..","H2","E3","E3","H2","E3","H2","E3","E3","H2",".."],
+                    ["..","..","H2","H2","H2","H2","H2","H2","H2","..",".."],
+                    ["..","H7","H7","H2","H2","H2","H2","H2","H7","H7",".."],
+                    ["H7","H7","H7","H2","H2","H2","H2","H2","H7","H7","H7"],
+                    ["H7","H7","..","..","..","..","..","..","..","H7","H7"]
+                ]
+            },
+            {
+                id: "fox",
+                title: "Raposinha",
+                category: "Animais",
+                width: 11,
+                height: 11,
+                grid: [
+                    ["A7","A7","..","..","..","..","..","..","..","A7","A7"],
+                    ["A7","H2","A7","..","..","..","..","..","A7","H2","A7"],
+                    ["A7","H2","H2","A7","..","..","..","A7","H2","H2","A7"],
+                    ["A7","A7","A7","A7","A7","A7","A7","A7","A7","A7","A7"],
+                    ["A7","H7","A7","A7","A7","A7","A7","A7","A7","H7","A7"],
+                    ["A7","A7","A7","A7","A7","H7","A7","A7","A7","A7","A7"],
+                    ["..","A7","H2","H2","H7","H7","H7","H2","H2","A7",".."],
+                    ["..","..","H2","H2","H2","H2","H2","H2","H2","..",".."],
+                    ["..","..","A7","A7","A7","A7","A7","A7","A7","..",".."],
+                    ["..","..","H2","H2","H2","H2","H2","H2","H2","..",".."],
+                    ["..","..","H2","H2","..","..","..","H2","H2","..",".."]
+                ]
+            },
+            {
+                id: "frog",
+                title: "Sapinho Cururu",
+                category: "Animais",
+                width: 11,
+                height: 10,
+                grid: [
+                    ["..","B4","B4","..","..","..","..","..","B4","B4",".."],
+                    ["..","H2","H7","B4","..","..","..","B4","H2","H7",".."],
+                    ["B4","B4","B4","B4","B4","B4","B4","B4","B4","B4","B4"],
+                    ["B4","E3","E3","B4","B4","B4","B4","B4","E3","E3","B4"],
+                    ["B4","B4","B4","H7","H7","H7","H7","H7","B4","B4","B4"],
+                    ["..","B4","B4","B4","B4","B4","B4","B4","B4","B4",".."],
+                    ["..","B4","B4","B4","B4","B4","B4","B4","B4","B4",".."],
+                    ["B4","B4","B4","B4","B4","B4","B4","B4","B4","B4","B4"],
+                    ["B4","..","..","..","..","..","..","..","..","..","B4"],
+                    ["B4","B4","..","..","..","..","..","..","..","B4","B4"]
+                ]
+            },
+            {
+                id: "sun",
+                title: "Sol Radiante",
+                category: "Natureza",
+                width: 11,
+                height: 11,
+                grid: [
+                    ["A4","..","..","..","A4","A4","A4","..","..","..","A4"],
+                    ["..","A4","..","..","..","A4","..","..","..","A4",".."],
+                    ["..","..","A4","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["..","..","A4","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["A4","..","A4","A4","A5","A5","A5","A4","A4","..","A4"],
+                    ["A4","A4","A4","A4","A5","A5","A5","A4","A4","A4","A4"],
+                    ["A4","..","A4","A4","A5","A5","A5","A4","A4","..","A4"],
+                    ["..","..","A4","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["..","..","A4","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["..","A4","..","..","..","A4","..","..","..","A4",".."],
+                    ["A4","..","..","..","A4","A4","A4","..","..","..","A4"]
+                ]
+            },
+            {
+                id: "tree",
+                title: "Árvore Frutífera",
+                category: "Natureza",
+                width: 10,
+                height: 11,
+                grid: [
+                    ["..","..","B8","B8","B8","B8","B8","..","..",".."],
+                    ["..","B8","B8","B8","F4","B8","B8","B8","..",".."],
+                    ["B8","B8","F4","B8","B8","B8","B8","F4","B8",".."],
+                    ["B8","B8","B8","B8","B8","B8","B8","B8","B8","B8"],
+                    ["B8","F4","B8","B8","F4","B8","B8","B8","B8","B8"],
+                    ["..","B8","B8","B8","B8","B8","B8","F4","B8",".."],
+                    ["..","..","B8","B8","B8","B8","B8","B8","..",".."],
+                    ["..","..","..","..","G8","G8","..","..","..",".."],
+                    ["..","..","..","..","G8","G8","..","..","..",".."],
+                    ["..","..","..","..","G8","G8","..","..","..",".."],
+                    ["..","..","..","G8","G8","G8","G8","..","..",".."]
+                ]
+            },
+            {
+                id: "star",
+                title: "Estrela Mágica",
+                category: "Geométrico",
+                width: 11,
+                height: 11,
+                grid: [
+                    ["..","..","..","..","..","A4","..","..","..","..",".."],
+                    ["..","..","..","..","A4","A4","A4","..","..","..",".."],
+                    ["..","..","..","..","A4","A4","A4","..","..","..",".."],
+                    ["..","..","..","A4","A4","A4","A4","A4","..","..",".."],
+                    ["A4","A4","A4","A4","A4","A4","A4","A4","A4","A4","A4"],
+                    ["..","A4","A4","A4","A4","A4","A4","A4","A4","A4",".."],
+                    ["..","..","A4","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["..","..","..","A4","A4","A4","A4","A4","..","..",".."],
+                    ["..","..","A4","A4","A4","..","A4","A4","A4","..",".."],
+                    ["..","A4","A4","A4","..","..","..","A4","A4","A4",".."],
+                    ["A4","A4","..","..","..","..","..","..","..","A4","A4"]
+                ]
+            },
+            {
+                id: "potion",
+                title: "Poção Mágica",
+                category: "Geométrico",
+                width: 10,
+                height: 12,
+                grid: [
+                    ["..","..","..","H3","H3","H3","H3","..","..",".."],
+                    ["..","..","..","G8","G8","G8","G8","..","..",".."],
+                    ["..","..","..","..","C2","C2","..","..","..",".."],
+                    ["..","..","..","C2","C2","C2","C2","..","..",".."],
+                    ["..","..","C2","H2","H2","H2","H2","C2","..",".."],
+                    ["..","C2","D6","D6","D6","D6","D6","D6","C2",".."],
+                    ["C2","D6","D12","D6","D6","D12","D6","D6","D6","C2"],
+                    ["C2","D6","D6","D6","D6","D6","D6","D6","D6","C2"],
+                    ["C2","D6","D6","D6","D6","D6","D6","D6","D6","C2"],
+                    ["C2","D6","D6","D6","D6","D6","D6","D6","D6","C2"],
+                    ["..","C2","D6","D6","D6","D6","D6","D6","C2",".."],
+                    ["..","..","C2","C2","C2","C2","C2","C2","..",".."]
+                ]
+            },
+            {
+                id: "gameboy",
+                title: "Game Boy Retro",
+                category: "Objetos",
+                width: 10,
+                height: 12,
+                grid: [
+                    ["..","D2","D2","D2","D2","D2","D2","D2","D2",".."],
+                    ["D2","H6","H6","H6","H6","H6","H6","H6","H6","D2"],
+                    ["D2","H6","B2","B2","B2","B2","B2","H6","H6","D2"],
+                    ["D2","H6","B2","B2","B2","B2","B2","H6","H6","D2"],
+                    ["D2","H6","B2","B2","B2","B2","B2","H6","H6","D2"],
+                    ["D2","H6","H6","H6","H6","H6","H6","H6","H6","D2"],
+                    ["D2","D2","D2","D2","D2","D2","D2","D2","D2","D2"],
+                    ["D2","D2","H7","D2","D2","E6","E6","D2","D2","D2"],
+                    ["D2","H7","H7","H7","D2","E6","E6","D2","D2","D2"],
+                    ["D2","D2","H7","D2","D2","D2","D2","D2","D2","D2"],
+                    ["D2","D2","D2","D2","H5","H5","D2","D2","D2","D2"],
+                    ["..","D2","D2","D2","D2","D2","D2","D2","D2",".."]
+                ]
+            },
+            {
+                id: "key",
+                title: "Chave Dourada",
+                category: "Objetos",
+                width: 10,
+                height: 12,
+                grid: [
+                    ["..","..","A4","A4","A4","A4","..","..","..",".."],
+                    ["..","A4","H2","H2","H2","H2","A4","..","..",".."],
+                    ["..","A4","H2","H2","H2","H2","A4","..","..",".."],
+                    ["..","..","A4","A4","A4","A4","..","..","..",".."],
+                    ["..","..","..","A4","A4","..","..","..","..",".."],
+                    ["..","..","..","A4","A4","..","..","..","..",".."],
+                    ["..","..","..","A4","A4","A4","A4","..","..",".."],
+                    ["..","..","..","A4","A4","..","..","..","..",".."],
+                    ["..","..","..","A4","A4","A4","A4","..","..",".."],
+                    ["..","..","..","A4","A4","..","..","..","..",".."],
+                    ["..","..","..","A4","A4","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "sword",
+                title: "Espada Pixel",
+                category: "Jogos",
+                width: 10,
+                height: 10,
+                grid: [
+                    ["..","..","..","..","..","..","..","..","C4","C4"],
+                    ["..","..","..","..","..","..","..","C4","C4","C4"],
+                    ["..","..","..","..","..","..","C4","C4","C4",".."],
+                    ["..","..","..","..","..","C4","C4","C4","..",".."],
+                    ["..","..","..","..","C4","C4","C4","..","..",".."],
+                    ["..","..","..","C4","C4","C4","..","..","..",".."],
+                    ["..","A4","A4","C4","C4","..","..","..","..",".."],
+                    ["..","A4","A4","A4","..","..","..","..","..",".."],
+                    ["G8","A4","A4","..","..","..","..","..","..",".."],
+                    ["G8","G8","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "coin",
+                title: "Moeda Pixel",
+                category: "Jogos",
+                width: 10,
+                height: 10,
+                grid: [
+                    ["..","..","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["..","A4","A3","A3","A3","A3","A3","A3","A4",".."],
+                    ["A4","A3","A4","A4","A4","A4","A3","A3","A3","A4"],
+                    ["A4","A3","A4","A3","A3","A4","A3","A3","A3","A4"],
+                    ["A4","A3","A4","A3","A3","A4","A3","A3","A3","A4"],
+                    ["A4","A3","A4","A3","A3","A4","A3","A3","A3","A4"],
+                    ["A4","A3","A4","A4","A4","A4","A3","A3","A3","A4"],
+                    ["..","A4","A3","A3","A3","A3","A3","A3","A4",".."],
+                    ["..","..","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "rocket",
+                title: "Foguete Espacial",
+                category: "Espaço",
+                width: 10,
+                height: 12,
+                grid: [
+                    ["..","..","..","..","F2","F2","..","..","..",".."],
+                    ["..","..","..","F2","F2","F2","F2","..","..",".."],
+                    ["..","..","..","H2","H2","H2","H2","..","..",".."],
+                    ["..","..","..","H2","C8","C8","H2","..","..",".."],
+                    ["..","..","..","H2","C8","C8","H2","..","..",".."],
+                    ["..","..","..","H2","H2","H2","H2","..","..",".."],
+                    ["..","..","F2","H2","H2","H2","H2","F2","..",".."],
+                    ["..","F2","F2","H2","H2","H2","H2","F2","F2",".."],
+                    ["..","F2","..","H2","H2","H2","H2","..","F2",".."],
+                    ["..","..","..","A6","F2","F2","A6","..","..",".."],
+                    ["..","..","..","A4","A4","A4","A4","..","..",".."],
+                    ["..","..","..","..","A4","A4","..","..","..",".."]
+                ]
+            },
+            {
+                id: "planet",
+                title: "Planeta com Anel",
+                category: "Espaço",
+                width: 12,
+                height: 10,
+                grid: [
+                    ["..","..","..","..","D6","D6","D6","..","..","..","..",".."],
+                    ["..","..","..","D6","D6","D6","D6","D6","..","..","A4",".."],
+                    ["..","..","D6","D6","D6","D6","D6","D6","..","A4","A4",".."],
+                    ["..","..","D6","D6","D6","D6","D6","A4","A4","A4","..",".."],
+                    ["..","A4","A4","A4","A4","A4","A4","D6","D6","..","..",".."],
+                    ["..","A4","A4","A4","D6","D6","D6","D6","D6","..","..",".."],
+                    ["..","..","D6","D6","D6","D6","D6","D6","..","..","..",".."],
+                    ["A4","A4","..","D6","D6","D6","D6","..","..","..","..",".."],
+                    ["..","..","..","..","D6","D6","..","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "alien",
+                title: "ET Divertido",
+                category: "Espaço",
+                width: 10,
+                height: 11,
+                grid: [
+                    ["..","..","..","B2","B2","B2","B2","..","..",".."],
+                    ["..","..","B2","B2","B2","B2","B2","B2","..",".."],
+                    ["..","B2","B2","B2","B2","B2","B2","B2","B2",".."],
+                    ["..","B2","H2","H7","B2","B2","H2","H7","B2",".."],
+                    ["..","B2","H7","H7","B2","B2","H7","H7","B2",".."],
+                    ["..","B2","B2","B2","B2","B2","B2","B2","B2",".."],
+                    ["..","..","B2","B2","H7","H7","B2","B2","..",".."],
+                    ["..","..","..","B2","B2","B2","B2","..","..",".."],
+                    ["..","..","B2","B2","B2","B2","B2","B2","..",".."],
+                    ["..","..","B2","..","..","..","..","B2","..",".."],
+                    ["..","..","B2","B2","..","..","B2","B2","..",".."]
+                ]
+            },
+            {
+                id: "cupcake",
+                title: "Cupcake Doce",
+                category: "Alimentos",
+                width: 10,
+                height: 11,
+                grid: [
+                    ["..","..","..","..","F3","F3","..","..","..",".."],
+                    ["..","..","E4","E4","E4","E4","E4","E4","..",".."],
+                    ["..","E4","E4","E4","E4","E4","E4","E4","E4",".."],
+                    ["E4","E4","E4","E4","E4","E4","E4","E4","E4","E4"],
+                    ["E4","E4","E4","E4","E4","E4","E4","E4","E4","E4"],
+                    ["..","H1","H1","H1","H1","H1","H1","H1","H1",".."],
+                    ["..","E2","E12","E2","E12","E2","E12","E2","E12",".."],
+                    ["..","E2","E12","E2","E12","E2","E12","E2","E12",".."],
+                    ["..","..","E2","E12","E2","E12","E2","E12","..",".."],
+                    ["..","..","E2","E12","E2","E12","E2","E12","..",".."],
+                    ["..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "diamond",
+                title: "Diamante Azul",
+                category: "Geométrico",
+                width: 11,
+                height: 10,
+                grid: [
+                    ["..","..","C4","C4","C4","C4","C4","C4","C4","..",".."],
+                    ["..","C4","C3","C3","C4","C4","C4","C5","C5","C4",".."],
+                    ["C4","C3","H2","C3","C3","C4","C5","C5","C5","C5","C4"],
+                    ["C4","C4","C4","C4","C4","C4","C4","C4","C4","C4","C4"],
+                    ["..","C4","C5","C5","C5","C5","C5","C5","C5","C4",".."],
+                    ["..","..","C4","C5","C5","C5","C5","C5","C4","..",".."],
+                    ["..","..","..","C4","C5","C5","C5","C4","..","..",".."],
+                    ["..","..","..","..","C4","C5","C4","..","..","..",".."],
+                    ["..","..","..","..","..","C4","..","..","..","..",".."],
+                    ["..","..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "cherry",
+                title: "Cerejas Duplas",
+                category: "Alimentos",
+                width: 11,
+                height: 11,
+                grid: [
+                    ["..","..","..","..","..","B8","B8","..","..","..",".."],
+                    ["..","..","..","..","B8","..","..","B8","..","..",".."],
+                    ["..","..","..","B8","..","..","..","..","B8","..",".."],
+                    ["..","..","B8","..","..","..","..","..","..","B8",".."],
+                    ["..","B8","..","..","..","..","..","..","..","B8",".."],
+                    ["..","F4","F4","F4","..","..","..","F4","F4","F4",".."],
+                    ["F4","F2","F4","F4","F4","..","F4","F2","F4","F4","F4"],
+                    ["F4","H2","F4","F4","F4","..","F4","H2","F4","F4","F4"],
+                    ["F4","F4","F4","F4","F4","..","F4","F4","F4","F4","F4"],
+                    ["..","F4","F4","F4","..","..","..","F4","F4","F4",".."],
+                    ["..","..","..","..","..","..","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "car",
+                title: "Carrinho Vermelho",
+                category: "Objetos",
+                width: 12,
+                height: 8,
+                grid: [
+                    ["..","..","..","F4","F4","F4","F4","F4","..","..","..",".."],
+                    ["..","..","F4","C3","C3","C3","C3","F4","F4","..","..",".."],
+                    ["..","F4","F4","C3","C3","C3","C3","F4","F4","F4","..",".."],
+                    ["F4","F4","F4","F4","F4","F4","F4","F4","F4","F4","F4","F4"],
+                    ["F4","F4","F4","F4","F4","F4","F4","F4","F4","F4","F4","F4"],
+                    ["F4","F4","F4","F4","F4","F4","F4","F4","F4","F4","F4","F4"],
+                    ["..","H6","H7","H6","..","..","..","..","H6","H7","H6",".."],
+                    ["..","H6","H6","H6","..","..","..","..","H6","H6","H6",".."]
+                ]
+            },
+            {
+                id: "camera",
+                title: "Câmera Fotográfica",
+                category: "Objetos",
+                width: 12,
+                height: 9,
+                grid: [
+                    ["..","..","..","H5","H5","H5","..","..","..","..","..",".."],
+                    ["..","H5","H5","H5","H5","H5","H5","H5","H5","..","..",".."],
+                    ["H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5"],
+                    ["H5","H2","H5","H5","H6","H6","H6","H6","H5","H5","F4","H5"],
+                    ["H5","H5","H5","H6","C4","C4","C4","C4","H6","H5","H5","H5"],
+                    ["H5","H5","H5","H6","C4","H2","C4","C4","H6","H5","H5","H5"],
+                    ["H5","H5","H5","H6","C4","C4","C4","C4","H6","H5","H5","H5"],
+                    ["H5","H5","H5","H5","H6","H6","H6","H6","H5","H5","H5","H5"],
+                    ["H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5"]
+                ]
+            },
+            {
+                id: "controller",
+                title: "Controle de Videogame",
+                category: "Jogos",
+                width: 12,
+                height: 8,
+                grid: [
+                    ["..","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5",".."],
+                    ["H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5"],
+                    ["H5","H5","H7","H5","H5","H6","H6","H5","E6","H5","H5","H5"],
+                    ["H5","H7","H7","H7","H5","H6","H6","H5","H5","E6","H5","H5"],
+                    ["H5","H5","H7","H5","H5","H5","H5","H5","E6","H5","H5","H5"],
+                    ["H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5","H5"],
+                    ["H5","H5","H5","..","..","..","..","..","..","H5","H5","H5"],
+                    ["H5","H5","..","..","..","..","..","..","..","..","H5","H5"]
+                ]
+            },
+            {
+                id: "crown",
+                title: "Coroa Real",
+                category: "Objetos",
+                width: 11,
+                height: 9,
+                grid: [
+                    ["F2","..","..","..","F2","..","..","..","F2","..",".."],
+                    ["A4","..","..","..","A4","..","..","..","A4","..",".."],
+                    ["A4","A4","..","A4","A4","A4","..","A4","A4","..",".."],
+                    ["A4","A4","A4","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["A4","A4","C8","A4","A4","A4","C8","A4","A4","..",".."],
+                    ["A4","A4","A4","A4","F2","A4","A4","A4","A4","..",".."],
+                    ["A4","A4","A4","A4","A4","A4","A4","A4","A4","..",".."],
+                    ["A5","A5","A5","A5","A5","A5","A5","A5","A5","..",".."],
+                    ["A5","A5","A5","A5","A5","A5","A5","A5","A5","..",".."]
+                ]
+            },
+            {
+                id: "guitar",
+                title: "Guitarra Rocker",
+                category: "Objetos",
+                width: 9,
+                height: 12,
+                grid: [
+                    ["..","..","..","..","..","..","H7","H7",".."],
+                    ["..","..","..","..","..","H7","H7","..",".."],
+                    ["..","..","..","..","H4","H4","..","..",".."],
+                    ["..","..","..","H4","H4","..","..","..",".."],
+                    ["..","..","H4","H4","..","..","..","..",".."],
+                    ["..","..","F4","F4","F4","..","..","..",".."],
+                    ["..","F4","F4","H7","F4","F4","..","..",".."],
+                    ["F4","F4","H7","H2","H7","F4","F4","..",".."],
+                    ["F4","F4","F4","H7","F4","F4","F4","..",".."],
+                    ["F4","F4","F4","F4","F4","F4","F4","..",".."],
+                    ["..","F4","F4","F4","F4","F4","..","..",".."],
+                    ["..","..","F4","F4","F4","..","..","..",".."]
+                ]
+            },
+            {
+                id: "flower",
+                title: "Flor de Primavera",
+                category: "Natureza",
+                width: 10,
+                height: 12,
+                grid: [
+                    ["..","..","E4","E4","E4","E4","..","..","..",".."],
+                    ["..","E4","E4","E4","E4","E4","E4","..","..",".."],
+                    ["..","E4","E4","A4","A4","E4","E4","..","..",".."],
+                    ["E4","E4","A4","A5","A5","A4","E4","E4","..",".."],
+                    ["E4","E4","A4","A5","A5","A4","E4","E4","..",".."],
+                    ["..","E4","E4","A4","A4","E4","E4","..","..",".."],
+                    ["..","..","E4","E4","E4","E4","..","..","..",".."],
+                    ["..","..","..","B8","B8","..","..","..","..",".."],
+                    ["..","..","B2","B8","B8","..","..","..","..",".."],
+                    ["..","B2","B2","B8","B8","B2","B2","..","..",".."],
+                    ["..","..","..","B8","B8","B2","B2","..","..",".."],
+                    ["..","..","..","B8","B8","..","..","..","..",".."]
+                ]
+            },
+            {
+                id: "skull",
+                title: "Caveira Geek",
+                category: "Geométrico",
+                width: 10,
+                height: 10,
+                grid: [
+                    ["..","..","H2","H2","H2","H2","H2","H2","..",".."],
+                    ["..","H2","H2","H2","H2","H2","H2","H2","H2",".."],
+                    ["H2","H2","H2","H2","H2","H2","H2","H2","H2","H2"],
+                    ["H2","H2","H7","H7","H2","H2","H7","H7","H2","H2"],
+                    ["H2","H2","H7","H7","H2","H2","H7","H7","H2","H2"],
+                    ["H2","H2","H2","H2","H7","H7","H2","H2","H2","H2"],
+                    ["..","H2","H2","H2","H2","H2","H2","H2","H2",".."],
+                    ["..","..","H2","H7","H2","H7","H2","H7","..",".."],
+                    ["..","..","H2","H7","H2","H7","H2","H7","..",".."],
+                    ["..","..","..","H2","H2","H2","H2","..","..",".."]
+                ]
+            }
+        ];
+
+        /* CATEGORY DEFINITIONS */
+        const CATEGORIES = [
+            { id: "Animais", name: "Animais", icon: "fa-paw" },
+            { id: "Alimentos", name: "Alimentos", icon: "fa-utensils" },
+            { id: "Natureza", name: "Natureza", icon: "fa-tree" },
+            { id: "Geométrico", name: "Geométrico & Pop", icon: "fa-shapes" }
+        ];
+
+        /* ==========================================================================
+           3. APPLICATION STATE & PERSISTENCE (LOCAL STORAGE)
+           ========================================================================== */
+        const SAVE_KEY = "pixel_color_game_save_v1";
+
+        let gameState = {
+            progress: {}, // artId: { paintedPixels: { "x,y": "code" }, completed: bool, timeSpent: sec, completedCount: int }
+            lastPlayedArtId: null,
+            stats: {
+                totalTimeSeconds: 0,
+                totalClicks: 0,
+                correctClicks: 0,
+                colorCounts: {} // "A4": 15
+            },
+            settings: {
+                sound: true,
+                vibration: true
+            }
+        };
+
+        function loadSaveData() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    gameState = { ...gameState, ...parsed };
+                    // Ensure sub-objects exist
+                    if (!gameState.progress) gameState.progress = {};
+                    if (!gameState.stats) gameState.stats = { totalTimeSeconds: 0, totalClicks: 0, correctClicks: 0, colorCounts: {} };
+                    if (!gameState.settings) gameState.settings = { sound: true, vibration: true };
+                }
+            } catch (e) {
+                console.error("Failed to load save data", e);
+            }
+        }
+
+        function saveGameData() {
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+            } catch (e) {
+                console.error("Failed to save data", e);
+            }
+        }
+
+        function playSound(type) {
+            if (!gameState.settings.sound) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.08);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.5);
+                }
+            } catch (e) {
+                // Audio context block fallback
+            }
+        }
+
+        function triggerVibration() {
+            if (gameState.settings.vibration && navigator.vibrate) {
+                navigator.vibrate(20);
+            }
+        }
+
+        /* ==========================================================================
+           4. GAME CANVAS ENGINE & CONTROLLER
+           ========================================================================== */
+        let currentArt = null;
+        let selectedColorCode = null;
+        let scale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let playTimerInterval = null;
+        let hintInterval = null;
+        let hintPulseState = false;
+
+        const canvas = document.getElementById('paint-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        function startPainting(artId) {
+            currentArt = ARTWORKS.find(a => a.id === artId);
+            if (!currentArt) return;
+
+            // Ensure progress entry exists
+            if (!gameState.progress[artId]) {
+                gameState.progress[artId] = {
+                    paintedPixels: {},
+                    completed: false,
+                    timeSpent: 0,
+                    completedCount: 0
+                };
+            }
+            gameState.lastPlayedArtId = artId;
+            saveGameData();
+
+            // Set UI details
+            document.getElementById('game-drawing-title').innerText = currentArt.title;
+            
+            // Switch Screen
+            showSection('sec-canvas-game');
+
+            // Reset Zoom / Pan
+            scale = 20; // Default pixel size initial zoom
+            panX = (container.clientWidth - currentArt.width * scale) / 2;
+            panY = (container.clientHeight - currentArt.height * scale) / 2;
+
+            // Select first unpainted color
+            refreshPalette();
+
+            // Render Canvas
+            renderCanvas();
+
+            // Start Timer
+            startTimer();
+        }
+
+        function refreshPalette() {
+            const artProg = gameState.progress[currentArt.id];
+            const counts = {};
+
+            // Calculate remaining count for each color
+            for (let r = 0; r < currentArt.height; r++) {
+                for (let c = 0; c < currentArt.width; c++) {
+                    const code = currentArt.grid[r][c];
+                    if (code !== "..") {
+                        const key = `${c},${r}`;
+                        if (!artProg.paintedPixels[key]) {
+                            counts[code] = (counts[code] || 0) + 1;
+                        }
+                    }
+                }
+            }
+
+            const paletteContainer = document.getElementById('color-palette-container');
+            paletteContainer.innerHTML = '';
+
+            const remainingCodes = Object.keys(counts);
+
+            if (remainingCodes.length === 0) {
+                // Completed artwork
+                paletteContainer.innerHTML = `<span class="text-xs text-emerald-400 font-bold px-4 py-2"><i class="fa-solid fa-check-circle mr-1"></i> Desenho Concluído!</span>`;
+                checkCompletion();
+                return;
+            }
+
+            // If selected color is no longer needed, select the first available
+            if (!selectedColorCode || !counts[selectedColorCode]) {
+                selectedColorCode = remainingCodes[0];
+            }
+
+            remainingCodes.forEach(code => {
+                const hex = cores[code] || "#FFFFFF";
+                const pill = document.createElement('button');
+                pill.className = `color-pill flex-shrink-0 flex items-center space-x-2 px-3 py-2 rounded-2xl border ${selectedColorCode === code ? 'border-sky-400 ring-2 ring-sky-400/50 scale-105 bg-slate-800' : 'border-slate-700 bg-slate-900/90'} text-xs font-bold transition-all active:scale-95`;
+                
+                pill.innerHTML = `
+                    <div class="w-5 h-5 rounded-full shadow-inner border border-black/20 flex items-center justify-center" style="background-color: ${hex}">
+                    </div>
+                    <div class="flex flex-col text-left">
+                        <span class="text-[11px] text-slate-200 leading-none">${code}</span>
+                        <span class="text-[9px] text-slate-400 leading-none mt-0.5">${counts[code]}</span>
+                    </div>
+                `;
+
+                pill.onclick = () => {
+                    selectedColorCode = code;
+                    refreshPalette();
+                    renderCanvas();
+                    triggerVibration();
+                };
+
+                paletteContainer.appendChild(pill);
+            });
+
+            updateProgressText();
+        }
+
+        function updateProgressText() {
+            let total = 0;
+            let painted = 0;
+
+            for (let r = 0; r < currentArt.height; r++) {
+                for (let c = 0; c < currentArt.width; c++) {
+                    if (currentArt.grid[r][c] !== "..") {
+                        total++;
+                        if (gameState.progress[currentArt.id].paintedPixels[`${c},${r}`]) {
+                            painted++;
+                        }
+                    }
+                }
+            }
+
+            const percent = total > 0 ? Math.floor((painted / total) * 100) : 0;
+            document.getElementById('game-progress-text').innerText = `${percent}%`;
+        }
+
+        function renderCanvas() {
+            if (!currentArt) return;
+
+            // Resize internal canvas buffer
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingEnabled = false;
+
+            const artProg = gameState.progress[currentArt.id];
+
+            for (let r = 0; r < currentArt.height; r++) {
+                for (let c = 0; c < currentArt.width; c++) {
+                    const code = currentArt.grid[r][c];
+                    if (code === "..") continue;
+
+                    const x = panX + c * scale;
+                    const y = panY + r * scale;
+
+                    // Skip off-screen rendering
+                    if (x + scale < 0 || x > canvas.width || y + scale < 0 || y > canvas.height) continue;
+
+                    const key = `${c},${r}`;
+                    const isPainted = artProg.paintedPixels[key];
+
+                    if (isPainted) {
+                        ctx.fillStyle = cores[code] || "#FFFFFF";
+                        ctx.fillRect(x, y, scale, scale);
+                        ctx.strokeStyle = "rgba(0, 0, 0, 0.05)";
+                        ctx.strokeRect(x, y, scale, scale);
+                    } else {
+                        // Unpainted cell background
+                        ctx.fillStyle = "#1e293b";
+                        ctx.fillRect(x, y, scale, scale);
+
+                        // Highlight if matching selected color
+                        if (selectedColorCode && code === selectedColorCode) {
+                            ctx.fillStyle = "rgba(56, 189, 248, 0.35)"; // Sky blue pulse highlight
+                            ctx.fillRect(x, y, scale, scale);
+                        }
+
+                        // Grid border
+                        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                        ctx.strokeRect(x, y, scale, scale);
+
+                        // Render color code text if zoom is sufficient
+                        if (scale >= 14) {
+                            ctx.fillStyle = (selectedColorCode && code === selectedColorCode) ? "#38bdf8" : "#94a3b8";
+                            ctx.font = `bold ${Math.max(8, scale * 0.35)}px Inter, sans-serif`;
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText(code, x + scale / 2, y + scale / 2);
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Interactive Canvas Touch & Mouse Events */
+        let pointerDown = false;
+        let lastTouchDist = 0;
+
+        container.addEventListener('pointerdown', (e) => {
+            pointerDown = true;
+            isDragging = false;
+            dragStartX = e.clientX - panX;
+            dragStartY = e.clientY - panY;
+        });
+
+        container.addEventListener('pointermove', (e) => {
+            if (!pointerDown) return;
+            isDragging = true;
+            panX = e.clientX - dragStartX;
+            panY = e.clientY - dragStartY;
+            renderCanvas();
+        });
+
+        container.addEventListener('pointerup', (e) => {
+            if (!pointerDown) return;
+            pointerDown = false;
+
+            // If it was a tap (not dragging), trigger paint click
+            if (!isDragging) {
+                handleCanvasClick(e.clientX, e.clientY);
+            }
+        });
+
+        /* Pinch Zoom for Mobile */
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                lastTouchDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+        });
+
+        container.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const factor = dist / lastTouchDist;
+                scale = Math.min(Math.max(8, scale * factor), 60);
+                lastTouchDist = dist;
+                renderCanvas();
+            }
+        });
+
+        /* Wheel Zoom for Desktop */
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+            scale = Math.min(Math.max(8, scale * zoomFactor), 60);
+            renderCanvas();
+        }, { passive: false });
+
+        function handleCanvasClick(clientX, clientY) {
+            if (!currentArt || !selectedColorCode) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = clientY ? clientX - rect.left : 0;
+            const y = clientY ? clientY - rect.top : 0;
+
+            const col = Math.floor((x - panX) / scale);
+            const row = Math.floor((y - panY) / scale);
+
+            if (col >= 0 && col < currentArt.width && row >= 0 && row < currentArt.height) {
+                const targetCode = currentArt.grid[row][col];
+                if (targetCode === "..") return;
+
+                const key = `${col},${row}`;
+                const artProg = gameState.progress[currentArt.id];
+
+                gameState.stats.totalClicks++;
+
+                if (targetCode === selectedColorCode) {
+                    if (!artProg.paintedPixels[key]) {
+                        artProg.paintedPixels[key] = selectedColorCode;
+                        gameState.stats.correctClicks++;
+                        gameState.stats.colorCounts[selectedColorCode] = (gameState.stats.colorCounts[selectedColorCode] || 0) + 1;
+
+                        playSound('pop');
+                        triggerVibration();
+
+                        refreshPalette();
+                        renderCanvas();
+                        saveGameData();
+                    }
+                } else {
+                    // Wrong Color Feedback
+                    playSound('error');
+                    triggerVibration();
+                }
+            }
+        }
+
+        function startTimer() {
+            clearInterval(playTimerInterval);
+            playTimerInterval = setInterval(() => {
+                if (currentArt && gameState.progress[currentArt.id] && !gameState.progress[currentArt.id].completed) {
+                    gameState.progress[currentArt.id].timeSpent++;
+                    gameState.stats.totalTimeSeconds++;
+                    
+                    const sec = gameState.progress[currentArt.id].timeSpent;
+                    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+                    const s = (sec % 60).toString().padStart(2, '0');
+                    document.getElementById('game-timer').innerText = `${m}:${s}`;
+                    
+                    if (sec % 5 === 0) saveGameData(); // Auto save every 5s
+                }
+            }, 1000);
+        }
+
+        function checkCompletion() {
+            const artProg = gameState.progress[currentArt.id];
+            if (artProg.completed) return;
+
+            artProg.completed = true;
+            artProg.completedCount = (artProg.completedCount || 0) + 1;
+            saveGameData();
+
+            playSound('win');
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+
+            // Show Complete Modal
+            document.getElementById('complete-art-title').innerText = currentArt.title;
+            const sec = artProg.timeSpent;
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            document.getElementById('complete-art-time').innerText = `${m}m ${s}s`;
+            
+            const acc = gameState.stats.totalClicks > 0 ? Math.round((gameState.stats.correctClicks / gameState.stats.totalClicks) * 100) : 100;
+            document.getElementById('complete-art-acc').innerText = `${acc}%`;
+
+            document.getElementById('complete-modal').classList.remove('hidden');
+        }
+
+        /* Zoom Button Controls */
+        document.getElementById('btn-zoom-in').onclick = () => { scale = Math.min(60, scale * 1.2); renderCanvas(); };
+        document.getElementById('btn-zoom-out').onclick = () => { scale = Math.max(8, scale * 0.8); renderCanvas(); };
+        document.getElementById('btn-zoom-reset').onclick = () => {
+            if (currentArt) {
+                scale = 20;
+                panX = (container.clientWidth - currentArt.width * scale) / 2;
+                panY = (container.clientHeight - currentArt.height * scale) / 2;
+                renderCanvas();
+            }
+        };
+
+        /* Hint Button */
+        document.getElementById('game-hint-btn').onclick = () => {
+            if (!currentArt || !selectedColorCode) return;
+            const artProg = gameState.progress[currentArt.id];
+
+            for (let r = 0; r < currentArt.height; r++) {
+                for (let c = 0; c < currentArt.width; c++) {
+                    if (currentArt.grid[r][c] === selectedColorCode && !artProg.paintedPixels[`${c},${r}`]) {
+                        // Center screen on this pixel
+                        scale = 28;
+                        panX = container.clientWidth / 2 - c * scale - scale / 2;
+                        panY = container.clientHeight / 2 - r * scale - scale / 2;
+                        renderCanvas();
+                        triggerVibration();
+                        return;
+                    }
+                }
+            }
+        };
+
+        /* Back Button */
+        document.getElementById('game-back-btn').onclick = () => {
+            clearInterval(playTimerInterval);
+            showSection('sec-home');
+        };
+
+        /* ==========================================================================
+           5. MINI-PREVIEW RENDERER
+           ========================================================================== */
+        function renderThumbnail(canvasEl, artwork) {
+            if (!canvasEl || !artwork) return;
+            const tCtx = canvasEl.getContext('2d');
+            canvasEl.width = artwork.width * 4;
+            canvasEl.height = artwork.height * 4;
+
+            tCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+            const artProg = gameState.progress[artwork.id];
+
+            for (let r = 0; r < artwork.height; r++) {
+                for (let c = 0; c < artwork.width; c++) {
+                    const code = artwork.grid[r][c];
+                    if (code === "..") continue;
+
+                    const key = `${c},${r}`;
+                    if (artProg && artProg.paintedPixels[key]) {
+                        tCtx.fillStyle = cores[code] || "#FFFFFF";
+                    } else {
+                        tCtx.fillStyle = "#334155"; // Unpainted preview tone
+                    }
+                    tCtx.fillRect(c * 4, r * 4, 4, 4);
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. SPA SECTION RENDERERS & NAVIGATION
+           ========================================================================== */
+        function showSection(sectionId) {
+            document.querySelectorAll('.spa-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            // Bottom Nav tab active state
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.getAttribute('data-target') === sectionId) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // Trigger updates per section
+            if (sectionId === 'sec-home') updateHomeDashboard();
+            if (sectionId === 'sec-categories') renderCategoriesView();
+            if (sectionId === 'sec-album') renderAlbumView();
+        }
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.onclick = () => {
+                const target = item.getAttribute('data-target');
+                showSection(target);
+            };
+        });
+
+        /* HOME DASHBOARD UPDATE */
+        function updateHomeDashboard() {
+            let totalCompleted = 0;
+            let totalPixels = 0;
+
+            Object.keys(gameState.progress).forEach(artId => {
+                const prog = gameState.progress[artId];
+                if (prog.completed) totalCompleted++;
+                totalPixels += Object.keys(prog.paintedPixels || {}).length;
+            });
+
+            document.getElementById('stat-completed-count').innerText = totalCompleted;
+            document.getElementById('stat-total-pixels').innerText = totalPixels;
+
+            // Total Time formatted
+            const sec = gameState.stats.totalTimeSeconds || 0;
+            const hrs = Math.floor(sec / 3600);
+            const mins = Math.floor((sec % 3600) / 60);
+            const secs = sec % 60;
+            document.getElementById('stat-total-time').innerText = `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+
+            // Accuracy
+            const acc = gameState.stats.totalClicks > 0 ? Math.round((gameState.stats.correctClicks / gameState.stats.totalClicks) * 100) : 100;
+            document.getElementById('stat-accuracy').innerText = `${acc}%`;
+
+            // Favorite Category
+            const catCounts = {};
+            ARTWORKS.forEach(art => {
+                const prog = gameState.progress[art.id];
+                if (prog && Object.keys(prog.paintedPixels).length > 0) {
+                    catCounts[art.category] = (catCounts[art.category] || 0) + Object.keys(prog.paintedPixels).length;
+                }
+            });
+            let favCat = "Nenhuma";
+            let maxCatVal = 0;
+            Object.entries(catCounts).forEach(([cat, count]) => {
+                if (count > maxCatVal) {
+                    maxCatVal = count;
+                    favCat = cat;
+                }
+            });
+            document.getElementById('stat-fav-cat').innerText = favCat;
+
+            // Favorite Color
+            let favColor = "N/A";
+            let maxColorVal = 0;
+            Object.entries(gameState.stats.colorCounts || {}).forEach(([code, count]) => {
+                if (count > maxColorVal) {
+                    maxColorVal = count;
+                    favColor = code;
+                }
+            });
+            document.getElementById('stat-fav-color-code').innerText = favColor;
+            const dot = document.getElementById('stat-fav-color-dot');
+            if (favColor !== "N/A" && cores[favColor]) {
+                dot.style.backgroundColor = cores[favColor];
+                dot.classList.remove('hidden');
+            } else {
+                dot.classList.add('hidden');
+            }
+
+            // User Level (1 level per 50 pixels)
+            const level = Math.floor(totalPixels / 50) + 1;
+            document.getElementById('home-user-lvl').innerText = `Nível ${level}`;
+
+            // Overall Game Progress
+            const totalGamePixels = ARTWORKS.reduce((sum, art) => sum + art.width * art.height, 0);
+            const gameProgPercent = totalGamePixels > 0 ? Math.floor((totalPixels / totalGamePixels) * 100) : 0;
+            document.getElementById('stat-game-progress').innerText = `${gameProgPercent}%`;
+            document.getElementById('stat-game-progress-bar').style.width = `${gameProgPercent}%`;
+
+            // Resume Card
+            const resumeCard = document.getElementById('home-resume-card');
+            if (gameState.lastPlayedArtId) {
+                const lastArt = ARTWORKS.find(a => a.id === gameState.lastPlayedArtId);
+                const prog = gameState.progress[gameState.lastPlayedArtId];
+                if (lastArt && prog && !prog.completed) {
+                    resumeCard.classList.remove('hidden');
+                    document.getElementById('home-resume-title').innerText = lastArt.title;
+                    const painted = Object.keys(prog.paintedPixels).length;
+                    const total = lastArt.width * lastArt.height;
+                    const pct = Math.floor((painted / total) * 100);
+                    document.getElementById('home-resume-bar').style.width = `${pct}%`;
+                    document.getElementById('home-resume-percent').innerText = `${pct}% concluído`;
+                    renderThumbnail(document.getElementById('home-resume-canvas'), lastArt);
+
+                    document.getElementById('home-resume-btn').onclick = () => startPainting(lastArt.id);
+                } else {
+                    resumeCard.classList.add('hidden');
+                }
+            } else {
+                resumeCard.classList.add('hidden');
+            }
+        }
+
+        /* CATEGORIES VIEW */
+        function renderCategoriesView() {
+            const grid = document.getElementById('categories-grid');
+            grid.innerHTML = '';
+
+            CATEGORIES.forEach(cat => {
+                const catArts = ARTWORKS.filter(a => a.category === cat.id);
+                const completedInCat = catArts.filter(a => gameState.progress[a.id] && gameState.progress[a.id].completed).length;
+                const firstArt = catArts[0];
+
+                const card = document.createElement('div');
+                card.className = "glass rounded-2xl p-4 flex items-center space-x-4 cursor-pointer active:scale-[0.98] transition border border-slate-700/50";
+                
+                card.innerHTML = `
+                    <canvas class="cat-preview-canvas w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 object-contain shadow-md flex-shrink-0"></canvas>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 text-sky-400 mb-1">
+                            <i class="fa-solid ${cat.icon} text-xs"></i>
+                            <span class="text-[11px] font-bold uppercase tracking-wider">Categoria</span>
+                        </div>
+                        <h3 class="font-bold text-base text-slate-100 truncate">${cat.name}</h3>
+                        <p class="text-xs text-slate-400 mt-1">${completedInCat} de ${catArts.length} pintados</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 text-sm"></i>
+                `;
+
+                card.onclick = () => openCategoryDetail(cat.id);
+                grid.appendChild(card);
+
+                if (firstArt) {
+                    renderThumbnail(card.querySelector('.cat-preview-canvas'), firstArt);
+                }
+            });
+        }
+
+        function openCategoryDetail(catId) {
+            const cat = CATEGORIES.find(c => c.id === catId);
+            const catArts = ARTWORKS.filter(a => a.category === catId);
+            const completedInCat = catArts.filter(a => gameState.progress[a.id] && gameState.progress[a.id].completed).length;
+
+            document.getElementById('cat-detail-title').innerText = cat.name;
+            document.getElementById('cat-detail-subtitle').innerText = `${completedInCat} de ${catArts.length} pintados`;
+
+            const grid = document.getElementById('cat-detail-drawings-grid');
+            grid.innerHTML = '';
+
+            catArts.forEach(art => {
+                const prog = gameState.progress[art.id] || { paintedPixels: {}, completed: false };
+                const painted = Object.keys(prog.paintedPixels).length;
+                const total = art.width * art.height;
+                const pct = Math.floor((painted / total) * 100);
+
+                const card = document.createElement('div');
+                card.className = "glass rounded-2xl p-3 flex flex-col justify-between space-y-3 border border-slate-700/50";
+                
+                card.innerHTML = `
+                    <div class="relative bg-slate-900/80 rounded-xl p-2 flex items-center justify-center border border-slate-800">
+                        <canvas class="art-thumb-canvas w-24 h-24 object-contain"></canvas>
+                        ${prog.completed ? '<span class="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-md shadow"><i class="fa-solid fa-check"></i></span>' : ''}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-200 truncate">${art.title}</h4>
+                        <p class="text-[10px] text-slate-400 mt-0.5">${art.width}x${art.height} • ${pct}%</p>
+                    </div>
+                    <button class="w-full bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 font-semibold py-1.5 rounded-xl text-xs active:scale-95 transition">
+                        ${prog.completed ? 'Pintar de Novo' : (painted > 0 ? 'Continuar' : 'Pintar')}
+                    </button>
+                `;
+
+                card.querySelector('button').onclick = () => startPainting(art.id);
+                grid.appendChild(card);
+
+                renderThumbnail(card.querySelector('.art-thumb-canvas'), art);
+            });
+
+            document.getElementById('sec-category-detail').classList.remove('hidden');
+        }
+
+        document.getElementById('cat-detail-back-btn').onclick = () => {
+            document.getElementById('sec-category-detail').classList.add('hidden');
+        };
+
+        /* ALBUM VIEW */
+        function renderAlbumView() {
+            const completedList = document.getElementById('album-content-completed');
+            const progressList = document.getElementById('album-content-progress');
+
+            completedList.innerHTML = '';
+            progressList.innerHTML = '';
+
+            let completedCount = 0;
+            let progressCount = 0;
+
+            ARTWORKS.forEach(art => {
+                const prog = gameState.progress[art.id];
+                if (!prog) return;
+
+                const painted = Object.keys(prog.paintedPixels || {}).length;
+                const total = art.width * art.height;
+
+                if (prog.completed) {
+                    completedCount++;
+                    const card = document.createElement('div');
+                    card.className = "glass rounded-2xl p-3 flex flex-col justify-between space-y-2 border border-slate-700/50";
+                    card.innerHTML = `
+                        <div class="bg-slate-900/80 rounded-xl p-2 flex items-center justify-center border border-slate-800">
+                            <canvas class="album-thumb-canvas w-24 h-24 object-contain"></canvas>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-200 truncate">${art.title}</h4>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Concluído ${prog.completedCount || 1}x</p>
+                        </div>
+                        <button class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-1.5 rounded-xl text-xs active:scale-95 transition">
+                            Pintar Novamente
+                        </button>
+                    `;
+                    card.querySelector('button').onclick = () => startPainting(art.id);
+                    completedList.appendChild(card);
+                    renderThumbnail(card.querySelector('.album-thumb-canvas'), art);
+                } else if (painted > 0) {
+                    progressCount++;
+                    const pct = Math.floor((painted / total) * 100);
+                    const card = document.createElement('div');
+                    card.className = "glass rounded-2xl p-3 flex items-center space-x-3 border border-slate-700/50";
+                    card.innerHTML = `
+                        <canvas class="album-thumb-canvas w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 object-contain flex-shrink-0"></canvas>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-sm text-slate-200 truncate">${art.title}</h4>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
+                                <div class="bg-sky-500 h-full" style="width: ${pct}%"></div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">${pct}% concluído</p>
+                        </div>
+                        <button class="bg-sky-600 text-white font-semibold px-3 py-2 rounded-xl text-xs active:scale-95 transition flex-shrink-0">
+                            Continuar
+                        </button>
+                    `;
+                    card.querySelector('button').onclick = () => startPainting(art.id);
+                    progressList.appendChild(card);
+                    renderThumbnail(card.querySelector('.album-thumb-canvas'), art);
+                }
+            });
+
+            document.getElementById('album-completed-count').innerText = completedCount;
+            document.getElementById('album-progress-count').innerText = progressCount;
+
+            if (completedCount === 0) {
+                completedList.innerHTML = `<p class="col-span-2 text-center text-xs text-slate-500 py-8">Nenhum desenho concluído ainda.</p>`;
+            }
+            if (progressCount === 0) {
+                progressList.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">Nenhum desenho em andamento.</p>`;
+            }
+        }
+
+        /* ALBUM SUB-TAB TOGGLE */
+        document.getElementById('album-tab-completed').onclick = function() {
+            this.classList.add('text-sky-400', 'bg-slate-700/80', 'shadow');
+            this.classList.remove('text-slate-400');
+            document.getElementById('album-tab-progress').classList.remove('text-sky-400', 'bg-slate-700/80', 'shadow');
+            document.getElementById('album-tab-progress').classList.add('text-slate-400');
+
+            document.getElementById('album-content-completed').classList.remove('hidden');
+            document.getElementById('album-content-progress').classList.add('hidden');
+        };
+
+        document.getElementById('album-tab-progress').onclick = function() {
+            this.classList.add('text-sky-400', 'bg-slate-700/80', 'shadow');
+            this.classList.remove('text-slate-400');
+            document.getElementById('album-tab-completed').classList.remove('text-sky-400', 'bg-slate-700/80', 'shadow');
+            document.getElementById('album-tab-completed').classList.add('text-slate-400');
+
+            document.getElementById('album-content-progress').classList.remove('hidden');
+            document.getElementById('album-content-completed').classList.add('hidden');
+        };
+
+        /* ==========================================================================
+           7. SETTINGS & EXPORT / IMPORT SAVE SYSTEM
+           ========================================================================== */
+        document.getElementById('setting-sound').onchange = (e) => {
+            gameState.settings.sound = e.target.checked;
+            saveGameData();
+        };
+
+        document.getElementById('setting-vibration').onchange = (e) => {
+            gameState.settings.vibration = e.target.checked;
+            saveGameData();
+        };
+
+        /* Export Save File JSON */
+        document.getElementById('btn-export-save').onclick = () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameState, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `pixel_color_save_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchorElem);
+            dlAnchorElem.click();
+            dlAnchorElem.remove();
+        };
+
+        /* Import Save File JSON */
+        document.getElementById('btn-import-save').onclick = () => {
+            document.getElementById('import-file-input').click();
+        };
+
+        document.getElementById('import-file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (importedData && importedData.progress) {
+                        gameState = importedData;
+                        saveGameData();
+                        alert("Progresso importado com sucesso!");
+                        showSection('sec-home');
+                    } else {
+                        alert("Arquivo JSON inválido.");
+                    }
+                } catch (err) {
+                    alert("Erro ao ler o arquivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        /* Reset Progress Modal */
+        const resetModal = document.getElementById('reset-modal');
+        const resetInput = document.getElementById('reset-input-confirm');
+        const resetConfirmBtn = document.getElementById('reset-confirm-btn');
+
+        document.getElementById('btn-reset-save').onclick = () => {
+            resetInput.value = '';
+            resetConfirmBtn.disabled = true;
+            resetModal.classList.remove('hidden');
+        };
+
+        resetInput.oninput = () => {
+            resetConfirmBtn.disabled = (resetInput.value.trim().toUpperCase() !== "RESET");
+        };
+
+        document.getElementById('reset-cancel-btn').onclick = () => {
+            resetModal.classList.add('hidden');
+        };
+
+        resetConfirmBtn.onclick = () => {
+            localStorage.removeItem(SAVE_KEY);
+            gameState = {
+                progress: {},
+                lastPlayedArtId: null,
+                stats: { totalTimeSeconds: 0, totalClicks: 0, correctClicks: 0, colorCounts: {} },
+                settings: { sound: true, vibration: true }
+            };
+            resetModal.classList.add('hidden');
+            showSection('sec-home');
+        };
+
+        /* Completion Modal Navigation */
+        document.getElementById('complete-album-btn').onclick = () => {
+            document.getElementById('complete-modal').classList.add('hidden');
+            showSection('sec-album');
+        };
+
+        document.getElementById('complete-home-btn').onclick = () => {
+            document.getElementById('complete-modal').classList.add('hidden');
+            showSection('sec-home');
+        };
+
+        /* ==========================================================================
+           8. INITIALIZATION ON WINDOW LOAD
+           ========================================================================== */
+        window.onload = function () {
+            loadSaveData();
+            showSection('sec-home');
+        };
+    </script>
+</body>
+</html>
