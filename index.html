@@ -1581,38 +1581,58 @@
 
         function handleCanvasClick(clientX, clientY) {
             if (!currentArt || !selectedColorCode) return;
-
+        
             const rect = canvas.getBoundingClientRect();
             const x = clientY ? clientX - rect.left : 0;
             const y = clientY ? clientY - rect.top : 0;
-
-            const col = Math.floor((x - panX) / scale);
-            const row = Math.floor((y - panY) / scale);
-
+        
+            // Converte posição da tela para posição na grade do desenho
+            let col = Math.floor((x - panX) / scale);
+            let row = Math.floor((y - panY) / scale);
+        
+            const artProg = gameState.progress[currentArt.id];
+        
+            // Se o clique direto não acertar a cor selecionada, busca em um raio próximo (para facilitar o toque mobile)
+            if (col < 0 || col >= currentArt.width || row < 0 || row >= currentArt.height || currentArt.grid[row][col] !== selectedColorCode) {
+                let found = false;
+                const tolerance = scale < 18 ? 1 : 0; // Ativa tolerância de 1 pixel vizinho quando o zoom for pequeno
+        
+                for (let dr = -tolerance; dr <= tolerance && !found; dr++) {
+                    for (let dc = -tolerance; dc <= tolerance && !found; dc++) {
+                        const r = row + dr;
+                        const c = col + dc;
+                        if (r >= 0 && r < currentArt.height && c >= 0 && c < currentArt.width) {
+                            if (currentArt.grid[r][c] === selectedColorCode && !artProg.paintedPixels[`${c},${r}`]) {
+                                row = r;
+                                col = c;
+                                found = true;
+                            }
+                        }
+                    }
+                }
+            }
+        
             if (col >= 0 && col < currentArt.width && row >= 0 && row < currentArt.height) {
                 const targetCode = currentArt.grid[row][col];
                 if (targetCode === "..") return;
-
+        
                 const key = `${col},${row}`;
-                const artProg = gameState.progress[currentArt.id];
-
                 gameState.stats.totalClicks++;
-
+        
                 if (targetCode === selectedColorCode) {
                     if (!artProg.paintedPixels[key]) {
                         artProg.paintedPixels[key] = selectedColorCode;
                         gameState.stats.correctClicks++;
                         gameState.stats.colorCounts[selectedColorCode] = (gameState.stats.colorCounts[selectedColorCode] || 0) + 1;
-
+        
                         playSound('pop');
                         triggerVibration();
-
+        
                         refreshPalette();
                         renderCanvas();
                         saveGameData();
                     }
                 } else {
-                    // Wrong Color Feedback
                     playSound('error');
                     triggerVibration();
                 }
